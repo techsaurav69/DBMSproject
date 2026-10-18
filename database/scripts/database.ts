@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
 import { Pool, type PoolClient } from 'pg';
 
 const databaseUrl = process.env.DATABASE_URL ?? (() => {
@@ -9,7 +10,37 @@ const databaseUrl = process.env.DATABASE_URL ?? (() => {
   return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@localhost:${port}/${encodeURIComponent(database)}`;
 })();
 
-export const pool = new Pool({ connectionString: databaseUrl });
+/**
+ * For hosted Postgres providers such as Supabase, set DATABASE_SSL_CA_FILE to
+ * the provider CA certificate downloaded from its dashboard. Keeping the
+ * certificate outside the repository lets Node verify the database identity
+ * instead of accepting an arbitrary certificate.
+ */
+function createPool(): Pool {
+  const certificateFile = process.env.DATABASE_SSL_CA_FILE;
+
+  if (!certificateFile) {
+    return new Pool({ connectionString: databaseUrl });
+  }
+
+  const connectionUrl = new URL(databaseUrl);
+  // node-postgres lets SSL query parameters replace the explicit `ssl` object.
+  // The CA file below is the single source of truth for verified TLS.
+  connectionUrl.searchParams.delete('sslmode');
+  connectionUrl.searchParams.delete('sslrootcert');
+  connectionUrl.searchParams.delete('sslcert');
+  connectionUrl.searchParams.delete('sslkey');
+
+  return new Pool({
+    connectionString: connectionUrl.toString(),
+    ssl: {
+      ca: readFileSync(certificateFile, 'utf8'),
+      rejectUnauthorized: true,
+    },
+  });
+}
+
+export const pool = createPool();
 
 export async function withTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();

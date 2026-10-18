@@ -20,6 +20,9 @@ npm run db:migrate
 3. Add these Production environment variables in Vercel:
 
    - `DATABASE_URL`: pooled SSL connection string for the production Postgres/PostGIS database.
+   - For local migrations against Supabase, download its CA certificate and set
+     `DATABASE_SSL_CA_FILE` to its absolute path. This enables certificate
+     verification; do not commit the certificate or database URL.
    - `JWT_SECRET`: a unique random secret of at least 32 characters.
    - `JWT_EXPIRES_IN`: `8h` is a suitable starting point.
    - `WEB_ORIGIN`: the final Vercel URL, for example `https://your-project.vercel.app`.
