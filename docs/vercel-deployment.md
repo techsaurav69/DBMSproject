@@ -23,6 +23,9 @@ npm run db:migrate
    - For local migrations against Supabase, download its CA certificate and set
      `DATABASE_SSL_CA_FILE` to its absolute path. This enables certificate
      verification; do not commit the certificate or database URL.
+   - `DATABASE_SSL_CA_PEM`: the complete text from the downloaded Supabase
+     certificate, with line breaks represented as `\\n`. This allows the Vercel
+     function to verify the database certificate without a local file.
    - `JWT_SECRET`: a unique random secret of at least 32 characters.
    - `JWT_EXPIRES_IN`: `8h` is a suitable starting point.
    - `WEB_ORIGIN`: the final Vercel URL, for example `https://your-project.vercel.app`.

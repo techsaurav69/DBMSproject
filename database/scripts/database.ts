@@ -18,8 +18,9 @@ const databaseUrl = process.env.DATABASE_URL ?? (() => {
  */
 function createPool(): Pool {
   const certificateFile = process.env.DATABASE_SSL_CA_FILE;
+  const certificatePem = process.env.DATABASE_SSL_CA_PEM;
 
-  if (!certificateFile) {
+  if (!certificateFile && !certificatePem) {
     return new Pool({ connectionString: databaseUrl });
   }
 
@@ -34,7 +35,9 @@ function createPool(): Pool {
   return new Pool({
     connectionString: connectionUrl.toString(),
     ssl: {
-      ca: readFileSync(certificateFile, 'utf8'),
+      ca: certificateFile
+        ? readFileSync(certificateFile, 'utf8')
+        : certificatePem!.replace(/\\n/g, '\n'),
       rejectUnauthorized: true,
     },
   });
