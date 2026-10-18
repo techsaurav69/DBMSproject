@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const express = require('express');
 const { NestFactory } = require('@nestjs/core');
 const { ExpressAdapter } = require('@nestjs/platform-express');
@@ -14,8 +17,8 @@ async function createServer() {
   return server;
 }
 
-module.exports = async (request, response) => {
+export default async function handler(request, response) {
   serverPromise ??= createServer();
   const server = await serverPromise;
   return server(request, response);
-};
+}
