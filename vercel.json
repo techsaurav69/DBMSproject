@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build --workspace=@crisisgrid/api && npm run build --workspace=@crisisgrid/web",
+  "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/[...path].js": {
+      "includeFiles": "apps/api/dist/**",
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

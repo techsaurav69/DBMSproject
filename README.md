@@ -45,7 +45,9 @@ npm run api:verify-auth
 
 ## Status
 
-This repository currently contains Phases 1–3 foundations. Authentication and local role-aware access are implemented; operational APIs, maps, and deployment are intentionally not implemented yet.
+This repository contains a local-first CrisisGrid prototype with role-aware access, operational workflows, maps, a community-aid area, and public advisory reference feeds. It uses fictional data and is not connected to emergency services.
+
+For production hosting, see [Vercel deployment](docs/vercel-deployment.md). A hosted deployment requires a separately provisioned PostgreSQL/PostGIS database and production environment variables.
 
 ## Verify PostGIS
 
