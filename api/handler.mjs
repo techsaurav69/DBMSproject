@@ -17,7 +17,18 @@ async function createServer() {
   return server;
 }
 
+function restoreApiPath(request) {
+  const requestUrl = new URL(request.url, 'http://localhost');
+  const path = requestUrl.searchParams.get('path');
+  if (!path) return;
+
+  requestUrl.searchParams.delete('path');
+  const remainingQuery = requestUrl.searchParams.toString();
+  request.url = `/api/${path}${remainingQuery ? `?${remainingQuery}` : ''}`;
+}
+
 export default async function handler(request, response) {
+  restoreApiPath(request);
   serverPromise ??= createServer();
   const server = await serverPromise;
   return server(request, response);

@@ -3,14 +3,18 @@
   "buildCommand": "npm run build --workspace=@crisisgrid/api && npm run build --workspace=@crisisgrid/web",
   "outputDirectory": "apps/web/dist",
   "functions": {
-    "api/[...path].mjs": {
+    "api/handler.mjs": {
       "includeFiles": "apps/api/dist/**",
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
-      "source": "/:path((?!api/).*)",
+      "source": "/api/:path*",
+      "destination": "/api/handler?path=:path*"
+    },
+    {
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
