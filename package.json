@@ -1,0 +1,41 @@
+{
+  "name": "crisisgrid",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first disaster response and emergency resource coordination prototype.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names api,web --prefix-colors blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace=@crisisgrid/api",
+    "dev:web": "npm run dev --workspace=@crisisgrid/web",
+    "build": "npm run build --workspace=@crisisgrid/api && npm run build --workspace=@crisisgrid/web",
+    "typecheck": "npm run typecheck --workspace=@crisisgrid/api && npm run typecheck --workspace=@crisisgrid/web && tsc -p database/tsconfig.json",
+    "test": "npm run test --workspace=@crisisgrid/api && npm run test --workspace=@crisisgrid/web",
+    "lint": "npm run lint --workspace=@crisisgrid/api && npm run lint --workspace=@crisisgrid/web",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db",
+    "db:migrate": "tsx database/scripts/migrate.ts",
+    "db:seed": "tsx database/scripts/seed.ts",
+    "db:verify": "tsx database/scripts/verify.ts",
+    "api:verify-auth": "tsx scripts/verify-auth.ts",
+    "api:verify-dashboard": "tsx scripts/verify-dashboard.ts",
+    "api:verify-sos": "tsx scripts/verify-sos.ts"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1"
+  }
+}
+

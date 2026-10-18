@@ -1,0 +1,20 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS citext;
+
+CREATE TYPE user_role_code AS ENUM ('citizen', 'coordinator', 'provider_operator', 'responder', 'administrator');
+CREATE TYPE emergency_type AS ENUM ('flood', 'earthquake', 'cyclone', 'landslide', 'wildfire', 'building_fire', 'road_accident', 'medical_emergency', 'other');
+CREATE TYPE severity_level AS ENUM ('low', 'medium', 'high', 'critical');
+CREATE TYPE disaster_status AS ENUM ('active', 'monitoring', 'closed');
+CREATE TYPE incident_source AS ENUM ('citizen_report', 'operator_report', 'trusted_alert');
+CREATE TYPE incident_status AS ENUM ('reported', 'verified', 'in_progress', 'resolved', 'closed');
+CREATE TYPE request_category AS ENUM ('medical', 'rescue', 'evacuation', 'food', 'water', 'shelter', 'other');
+CREATE TYPE request_status AS ENUM ('open', 'triaged', 'assigned', 'in_progress', 'fulfilled', 'cancelled', 'closed');
+CREATE TYPE provider_verification_status AS ENUM ('pending', 'verified', 'suspended', 'rejected');
+CREATE TYPE provider_operational_status AS ENUM ('operational', 'inactive', 'suspended');
+CREATE TYPE vehicle_type AS ENUM ('ambulance', 'rescue_boat', 'fire_engine', 'evacuation_vehicle', 'supply_truck', 'other');
+CREATE TYPE vehicle_operational_status AS ENUM ('available', 'maintenance', 'offline', 'retired');
+CREATE TYPE assignment_status AS ENUM ('assigned', 'accepted', 'en_route', 'on_scene', 'completed', 'cancelled', 'failed');
+CREATE TYPE allocation_status AS ENUM ('reserved', 'allocated', 'released', 'cancelled');
+CREATE TYPE resource_category AS ENUM ('supply', 'vehicle', 'equipment');
+CREATE TYPE location_source AS ENUM ('manual', 'gps', 'operator', 'simulated');
