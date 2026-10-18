@@ -1,8 +1,10 @@
 import type { StringValue } from 'ms';
+import { readFileSync } from 'node:fs';
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
 
 export type AppConfig = {
+  databaseSslCa?: string;
   databaseUrl: string;
   isProduction: boolean;
   jwtExpiresIn: StringValue;
@@ -30,6 +32,18 @@ function jwtDuration(value: string | undefined): StringValue {
   return duration as StringValue;
 }
 
+function databaseCertificate(environment: NodeJS.ProcessEnv): string | undefined {
+  if (environment.DATABASE_SSL_CA_PEM) {
+    return environment.DATABASE_SSL_CA_PEM.replace(/\\n/g, '\n');
+  }
+
+  if (environment.DATABASE_SSL_CA_FILE) {
+    return readFileSync(environment.DATABASE_SSL_CA_FILE, 'utf8');
+  }
+
+  return undefined;
+}
+
 export function loadAppConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
   const isProduction = environment.NODE_ENV === 'production';
   const jwtSecret = environment.JWT_SECRET ?? (isProduction ? undefined : 'crisisgrid-local-development-secret-change-before-production');
@@ -49,6 +63,7 @@ export function loadAppConfig(environment: NodeJS.ProcessEnv = process.env): App
   }
 
   return {
+    databaseSslCa: databaseCertificate(environment),
     databaseUrl,
     isProduction,
     jwtExpiresIn: jwtDuration(environment.JWT_EXPIRES_IN),
