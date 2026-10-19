@@ -78,6 +78,11 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 @media (max-width: 600px) { .command-telemetry { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }.command-telemetry__metric { min-height: 86px; padding: .68rem; }.command-telemetry__metric > strong { font-size: 1.15rem; } }
 [data-theme='dark'] .restricted-shell { color: #deece8; background: #0b1519; } [data-theme='dark'] .restricted-shell .brand, [data-theme='dark'] .restricted-shell h1 { color: #eef8f6; } [data-theme='dark'] .restricted-shell section > p { color: #a3b8b3; } [data-theme='dark'] .landing-shell { background: radial-gradient(circle at 8% 92%, rgb(39 119 109 / 32%), transparent 33%), #071818; }
 [data-theme='dark'] .leaflet-tile-pane { filter: brightness(.63) saturate(.78) hue-rotate(142deg); } [data-theme='dark'] .leaflet-control-zoom a { color: #dcebe7; background: #182a2a; border-color: #34524a; }
+
+/* Keep Leaflet's internal panes within the map card, below the sticky header. */
+.map-panel, .operations-map-workspace { position: relative; isolation: isolate; }
+.operations-map { width: 100%; min-height: 320px; overflow: hidden; }
+@media (max-width: 760px) { .operations-map { min-height: 270px; } }
 @media (max-width: 600px) { .landing-actions { gap: .4rem; }.landing-actions .connection-state { display: none; }.theme-toggle { min-height: 2rem; padding: .4rem .55rem; }.command-topbar { margin: -1.35rem -1rem 0; padding: 1rem 1rem .75rem; }.command-main > [id] { scroll-margin-top: 13rem; }.topbar-right { width: 100%; justify-items: start; }.topbar-utilities { order: -1; }.topbar-actions { gap: .5rem; }.topbar-actions .sync-status { display: none; }.global-chat__trigger span { display: none; }.global-chat__trigger { width: 2.2rem; justify-content: center; padding: .4rem; }.global-chat__panel { position: fixed; top: 4.5rem; right: 1rem; } }
 
 .legend-dot--gdacs { background: #e68b3f; }
