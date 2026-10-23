@@ -31,4 +31,11 @@ export class GlobalChatService {
     const row = result.rows[0];
     return { id: row.id, body: row.body, createdAt: row.created_at.toISOString(), authorName: row.author_name, roleLabel: row.role_label, mine: true };
   }
+
+  async clear(actor: AuthenticatedUser): Promise<{ deleted: number }> {
+    const result = await this.database.query<{ deleted: string }>(`WITH removed AS (DELETE FROM global_chat_messages RETURNING id) SELECT count(*)::text AS deleted FROM removed`);
+    const deleted = Number(result.rows[0]?.deleted ?? 0);
+    await this.database.query(`INSERT INTO audit_logs (actor_id, action, entity_type, details) VALUES ($1, 'global_chat_cleared', 'global_chat', jsonb_build_object('deleted_count', $2))`, [actor.sub, deleted]);
+    return { deleted };
+  }
 }

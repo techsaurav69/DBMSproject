@@ -83,6 +83,7 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 .map-panel, .operations-map-workspace { position: relative; isolation: isolate; }
 .operations-map { width: 100%; min-height: 320px; overflow: hidden; }
 @media (max-width: 760px) { .operations-map { min-height: 270px; } }
+.global-chat__header-actions { display: flex; align-items: flex-start; gap: .35rem; }.global-chat__clear { border: 1px solid #e4c8c8; border-radius: .42rem; padding: .38rem .48rem; color: #a04752; background: #fff7f7; font-size: .52rem; font-weight: 800; }.global-chat__clear:disabled { opacity: .55; cursor: wait; }.global-chat__close { width: 1.8rem; height: 1.8rem; border: 0; color: #668078; background: transparent; font-size: 1.2rem; }
 @media (max-width: 600px) { .landing-actions { gap: .4rem; }.landing-actions .connection-state { display: none; }.theme-toggle { min-height: 2rem; padding: .4rem .55rem; }.command-topbar { margin: -1.35rem -1rem 0; padding: 1rem 1rem .75rem; }.command-main > [id] { scroll-margin-top: 13rem; }.topbar-right { width: 100%; justify-items: start; }.topbar-utilities { order: -1; }.topbar-actions { gap: .5rem; }.topbar-actions .sync-status { display: none; }.global-chat__trigger span { display: none; }.global-chat__trigger { width: 2.2rem; justify-content: center; padding: .4rem; }.global-chat__panel { position: fixed; top: 4.5rem; right: 1rem; } }
 
 .legend-dot--gdacs { background: #e68b3f; }

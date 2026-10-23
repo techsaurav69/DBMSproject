@@ -102,6 +102,7 @@ export const api = {
   createIncidentMessage: (accessToken: string, incidentId: string, body: string) => request<IncidentMessage>(`/incidents/${incidentId}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ body }) }),
   globalChatMessages: (accessToken: string) => request<{ items: GlobalChatMessage[] }>('/chat/global', { headers: { Authorization: `Bearer ${accessToken}` } }),
   createGlobalChatMessage: (accessToken: string, body: string) => request<GlobalChatMessage>('/chat/global', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ body }) }),
+  clearGlobalChatMessages: (accessToken: string) => request<{ deleted: number }>('/chat/global', { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }),
   coordinatorUpdates: (accessToken: string, scope: CoordinatorUpdateScope) => request<{ items: CoordinatorUpdate[] }>(`/coordinator-updates/${scope}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   createCoordinatorUpdate: (accessToken: string, scope: CoordinatorUpdateScope, body: string) => request<CoordinatorUpdate>(`/coordinator-updates/${scope}`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ body }) }),
   communityOverview: (accessToken: string) => request<CommunityOverview>('/community/overview', { headers: { Authorization: `Bearer ${accessToken}` } }),
