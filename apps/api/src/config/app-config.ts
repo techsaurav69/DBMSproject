@@ -51,7 +51,10 @@ export function loadAppConfig(environment: NodeJS.ProcessEnv = process.env): App
     throw new Error('JWT_SECRET must be at least 32 characters long.');
   }
 
-  const databaseUrl = environment.DATABASE_URL
+  const configuredDatabaseUrl = isProduction
+    ? environment.POSTGRES_URL ?? environment.DATABASE_URL
+    : environment.DATABASE_URL ?? environment.POSTGRES_URL;
+  const databaseUrl = configuredDatabaseUrl
     ?? `postgresql://${encodeURIComponent(environment.POSTGRES_USER ?? 'crisisgrid_app')}:${encodeURIComponent(environment.POSTGRES_PASSWORD ?? 'change-this-local-password')}@localhost:${environment.POSTGRES_PORT ?? '5432'}/${encodeURIComponent(environment.POSTGRES_DB ?? 'crisisgrid')}`;
   const webOrigins = (environment.WEB_ORIGIN ?? 'http://localhost:5173,http://localhost:5174')
     .split(',')
