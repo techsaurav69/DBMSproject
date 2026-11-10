@@ -35,6 +35,7 @@ export function NearbyServices({ centre: mapCentre, accessToken }: Props): React
   const [refresh, setRefresh] = useState(0);
   const sequence = useRef(0);
   const lastSearch = useRef('');
+  const coverage = useRef<{ key: string; radius: number; items: NearbyService[]; fetchedAt: string } | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
@@ -45,25 +46,31 @@ export function NearbyServices({ centre: mapCentre, accessToken }: Props): React
     const requestId = ++sequence.current;
     const searchKey = `${centre?.latitude},${centre?.longitude},${radius},${filter}`;
     const changed = lastSearch.current !== searchKey;
-    if (changed) { setItems([]); setFetchedAt(null); }
+    const locationKey = `${centre?.latitude},${centre?.longitude},${filter}`;
+    const previous = coverage.current;
+    const covered = previous?.key === locationKey && previous.radius >= radius;
+    if (covered) { setItems(previous.items); setFetchedAt(previous.fetchedAt); setStatus('ready'); }
+    else if (changed) { setItems([]); setFetchedAt(null); }
     lastSearch.current = searchKey;
     if (!centre || !accessToken) { setStatus('idle'); return; }
     setRefreshing(true);
     setError('');
-    if (changed || !fetchedAt) setStatus('loading');
+    if (!covered && (changed || !fetchedAt)) setStatus('loading');
+    const queryRadius = covered ? previous.radius : radius;
     const timer = window.setTimeout(() => {
-      void api.nearbyServices(accessToken, centre.latitude, centre.longitude, radius, filter).then((response) => {
+      void api.nearbyServices(accessToken, centre.latitude, centre.longitude, queryRadius, filter).then((response) => {
         if (requestId !== sequence.current) return;
+        coverage.current = { key: locationKey, radius: queryRadius, items: response.items, fetchedAt: response.fetchedAt };
         setItems(response.items); setFetchedAt(response.fetchedAt); setRefreshing(false); setStatus('ready');
       }).catch((reason: unknown) => {
         if (requestId !== sequence.current) return;
         setRefreshing(false);
-        setError(reason instanceof ApiRequestError ? reason.message : 'Nearby services are unavailable. Try again.'); setStatus(fetchedAt && !changed ? 'ready' : 'error');
+        setError(reason instanceof ApiRequestError ? reason.message : 'Nearby services are unavailable. Try again.'); setStatus(covered || (fetchedAt && !changed) ? 'ready' : 'error');
       });
     }, 500);
     return () => { window.clearTimeout(timer); sequence.current++; };
   }, [centre?.latitude, centre?.longitude, accessToken, radius, filter, refresh]);
-  const visible = items.filter((item) => filter === 'all' || item.category === filter);
+  const visible = items.filter((item) => item.distanceMeters <= radius && (filter === 'all' || item.category === filter));
   return <section className="nearby-services" aria-label="Nearby rescue services">
     <header><div><p className="panel-kicker">NEARBY SUPPORT</p><h2>Nearby rescue services</h2><p>List hospitals and rescue services within the selected distance of your location.</p></div><label>Search radius<select value={radius} onChange={(event) => setRadius(Number(event.target.value))}>{[1000, 2000, 5000, 10000].map((value) => <option key={value} value={value}>{value / 1000} km</option>)}</select></label></header>
     <div className="nearby-services__filters"><label>Search from<select value={locationMode} onChange={(event) => setLocationMode(event.target.value)}><option value="live">My live location</option><option value="map">Map centre</option></select></label>{locationMode === 'live' && <button type="button" className="refresh-button" onClick={() => setLocationAttempt((value) => value + 1)}>Locate me again</button>}</div>

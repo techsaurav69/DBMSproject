@@ -51,4 +51,17 @@ describe('NearbyServicesService', () => {
     expect(query).toContain('amenity="hospital"');
     expect(query).not.toContain('police');
   });
+
+  it('narrows a successful 5 km search to 2 km without contacting the provider again', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ elements: [
+      { type: 'node', id: 1, lat: 0.005, lon: 0, tags: { amenity: 'hospital', name: 'Near hospital' } },
+      { type: 'node', id: 2, lat: 0.03, lon: 0, tags: { amenity: 'hospital', name: 'Far hospital' } },
+    ] }) });
+    global.fetch = fetchMock;
+    const service = new NearbyServicesService();
+    expect((await service.search(0, 0, 5000, 'hospital')).items).toHaveLength(2);
+    const smaller = await service.search(0, 0, 2000, 'hospital');
+    expect(smaller.items.map((item) => item.name)).toEqual(['Near hospital']);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

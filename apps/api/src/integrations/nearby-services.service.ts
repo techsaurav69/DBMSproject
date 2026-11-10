@@ -19,7 +19,16 @@ export class NearbyServicesService {
     const key = `${latitude},${longitude},${radius},${category}`;
     const cached = this.cache.get(key);
     if (cached && cached.expires > Date.now()) return cached.result;
-    const around = `(around:${radius},${latitude},${longitude})`;
+    // A wider successful search already contains every result for a smaller
+    // radius. Avoid another slow provider query when narrowing the search.
+    for (const [candidateKey, candidate] of this.cache) {
+      const [lat, lon, coverage, type] = candidateKey.split(',');
+      if (lat === String(latitude) && lon === String(longitude) && type === category && Number(coverage) >= radius && candidate.expires > Date.now()) {
+        return { ...candidate.result, items: candidate.result.items.filter((item) => item.distanceMeters <= radius) };
+      }
+    }
+    const coverageRadius = Math.max(5000, radius);
+    const around = `(around:${coverageRadius},${latitude},${longitude})`;
     const selectors = category === 'all' ? `nwr[amenity~"^(hospital|clinic|police|fire_station)$"]${around};nwr[emergency~"^(ambulance_station|rescue_station|disaster_response|lifeguard)$"]${around};` : `nwr[${amenities.includes(category) ? 'amenity' : 'emergency'}="${category}"]${around};`;
     const query = `[out:json][timeout:20];${category === 'all' ? `(${selectors});` : selectors}out center tags;`;
     try {
@@ -33,14 +42,14 @@ export class NearbyServicesService {
         const rad = Math.PI / 180;
         const a = Math.sin((lat - latitude) * rad / 2) ** 2 + Math.cos(latitude * rad) * Math.cos(lat * rad) * Math.sin((lon - longitude) * rad / 2) ** 2;
         const distanceMeters = Math.round(6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, a))));
-        if (distanceMeters > radius) continue;
+        if (distanceMeters > coverageRadius) continue;
         const category = tags.amenity ?? tags.emergency ?? 'rescue_station';
         items.push({ id: `${element.type}/${element.id}`, name: tags.name ?? tags['name:en'] ?? category.replaceAll('_', ' '), category, latitude: lat, longitude: lon, distanceMeters, address: tags['addr:full'] ?? [tags['addr:housenumber'], tags['addr:street'], tags['addr:suburb'], tags['addr:city']].filter(Boolean).join(', '), phone: tags.phone ?? tags['contact:phone'] ?? null });
       }
       const result = { items: items.sort((a, b) => a.distanceMeters - b.distanceMeters), source: 'OpenStreetMap / Overpass', fetchedAt: new Date().toISOString() };
       if (this.cache.size >= 100) this.cache.delete(this.cache.keys().next().value!);
-      this.cache.set(key, { expires: Date.now() + 60000, result });
-      return result;
+      this.cache.set(`${latitude},${longitude},${coverageRadius},${category}`, { expires: Date.now() + 5 * 60000, result });
+      return { ...result, items: result.items.filter((item) => item.distanceMeters <= radius) };
     } catch {
       throw new ServiceUnavailableException('Nearby services could not be loaded. Please try searching again.');
     }
