@@ -32,4 +32,12 @@ describe('NearbyServicesService', () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('timeout'));
     await expect(new NearbyServicesService().search(12, 77, 5000)).rejects.toThrow('could not be loaded');
   });
+
+  it('uses the second provider when the first rejects the request', async () => {
+    const fetchMock = jest.fn().mockResolvedValueOnce({ ok: false, status: 406 }).mockResolvedValueOnce({ ok: true, json: async () => ({ elements: [] }) });
+    global.fetch = fetchMock;
+    await expect(new NearbyServicesService().search(12, 77, 5000)).resolves.toMatchObject({ items: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).not.toBe(fetchMock.mock.calls[1][0]);
+  });
 });

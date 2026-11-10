@@ -16,12 +16,9 @@ export class NearbyServicesService {
     const cached = this.cache.get(key);
     if (cached && cached.expires > Date.now()) return cached.result;
     const around = `(around:${radius},${latitude},${longitude})`;
-    const query = `[out:json][timeout:18];(nwr[amenity~"^(hospital|clinic|police|fire_station)$"]${around};nwr[emergency~"^(ambulance_station|rescue_station|disaster_response|lifeguard)$"]${around};);out center tags;`;
+    const query = `[out:json][timeout:8];(nwr[amenity~"^(hospital|clinic|police|fire_station)$"]${around};nwr[emergency~"^(ambulance_station|rescue_station|disaster_response|lifeguard)$"]${around};);out center tags;`;
     try {
-      const response = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: new URLSearchParams({ data: query }), signal: AbortSignal.timeout(22000) });
-      if (!response.ok) throw new Error('Upstream unavailable');
-      const payload = await response.json() as { elements?: Element[]; remark?: string };
-      if (!Array.isArray(payload.elements) || payload.remark) throw new Error('Incomplete response');
+      const payload = await this.fetchPlaces(query);
       const items: Place[] = [];
       for (const element of payload.elements) {
         const lat = element.lat ?? element.center?.lat;
@@ -37,10 +34,25 @@ export class NearbyServicesService {
       }
       const result = { items: items.sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 60), source: 'OpenStreetMap / Overpass', fetchedAt: new Date().toISOString() };
       if (this.cache.size >= 100) this.cache.delete(this.cache.keys().next().value!);
-      this.cache.set(key, { expires: Date.now() + 5 * 60000, result });
+      this.cache.set(key, { expires: Date.now() + 60000, result });
       return result;
     } catch {
       throw new ServiceUnavailableException('Nearby services could not be loaded. Please try searching again.');
     }
+  }
+
+  private async fetchPlaces(query: string): Promise<{ elements: Element[] }> {
+    // Public providers can reject or time out requests. Try an independent
+    // provider within the deployment's 30-second execution limit.
+    const endpoints = ['https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, { method: 'POST', headers: { Accept: 'application/json', 'User-Agent': 'CrisisGrid/1.0 (https://crisisgrid-murex.vercel.app)' }, body: new URLSearchParams({ data: query }), signal: AbortSignal.timeout(11000) });
+        if (!response.ok) continue;
+        const payload = await response.json() as { elements?: Element[]; remark?: string };
+        if (Array.isArray(payload.elements) && !payload.remark) return { elements: payload.elements };
+      } catch { /* Try the independent provider on network errors and timeouts. */ }
+    }
+    throw new Error('All nearby-service providers are unavailable');
   }
 }
