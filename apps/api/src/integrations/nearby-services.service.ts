@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
 type Place = { id: string; name: string; category: string; latitude: number; longitude: number; distanceMeters: number; address: string; phone: string | null };
 type Result = { items: Place[]; source: string; fetchedAt: string };
@@ -6,6 +6,7 @@ type Element = { type: string; id: number; lat?: number; lon?: number; center?: 
 
 @Injectable()
 export class NearbyServicesService {
+  private readonly logger = new Logger(NearbyServicesService.name);
   private readonly cache = new Map<string, { expires: number; result: Result }>();
 
   async search(latitude: number, longitude: number, radius: number, category = 'all'): Promise<Result> {
@@ -20,7 +21,7 @@ export class NearbyServicesService {
     if (cached && cached.expires > Date.now()) return cached.result;
     const around = `(around:${radius},${latitude},${longitude})`;
     const selectors = category === 'all' ? `nwr[amenity~"^(hospital|clinic|police|fire_station)$"]${around};nwr[emergency~"^(ambulance_station|rescue_station|disaster_response|lifeguard)$"]${around};` : `nwr[${amenities.includes(category) ? 'amenity' : 'emergency'}="${category}"]${around};`;
-    const query = `[out:json][timeout:20];(${selectors});out center tags;`;
+    const query = `[out:json][timeout:20];${category === 'all' ? `(${selectors});` : selectors}out center tags;`;
     try {
       const payload = await this.fetchPlaces(query);
       const items: Place[] = [];
@@ -52,10 +53,13 @@ export class NearbyServicesService {
     for (const endpoint of endpoints) {
       try {
         const response = await fetch(`${endpoint}?${new URLSearchParams({ data: query })}`, { headers: { Accept: 'application/json', 'User-Agent': 'CrisisGrid/1.0 (https://crisisgrid-murex.vercel.app)' }, signal: AbortSignal.timeout(25000) });
-        if (!response.ok) continue;
+        if (!response.ok) { this.logger.warn(`Nearby provider ${new URL(endpoint).hostname} returned HTTP ${response.status}`); continue; }
         const payload = await response.json() as { elements?: Element[]; remark?: string };
         if (Array.isArray(payload.elements) && !payload.remark) return { elements: payload.elements };
-      } catch { /* Try the independent provider on network errors and timeouts. */ }
+      } catch (error) {
+        const failure = error as { name?: string; cause?: { code?: string } };
+        this.logger.warn(`Nearby provider ${new URL(endpoint).hostname} failed: ${failure.name ?? 'error'} ${failure.cause?.code ?? ''}`);
+      }
     }
     throw new Error('All nearby-service providers are unavailable');
   }
