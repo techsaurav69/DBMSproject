@@ -20,7 +20,7 @@ export class NearbyServicesService {
     if (cached && cached.expires > Date.now()) return cached.result;
     const around = `(around:${radius},${latitude},${longitude})`;
     const selectors = category === 'all' ? `nwr[amenity~"^(hospital|clinic|police|fire_station)$"]${around};nwr[emergency~"^(ambulance_station|rescue_station|disaster_response|lifeguard)$"]${around};` : `nwr[${amenities.includes(category) ? 'amenity' : 'emergency'}="${category}"]${around};`;
-    const query = `[out:json][timeout:8];(${selectors});out center tags;`;
+    const query = `[out:json][timeout:20];(${selectors});out center tags;`;
     try {
       const payload = await this.fetchPlaces(query);
       const items: Place[] = [];
@@ -46,12 +46,12 @@ export class NearbyServicesService {
   }
 
   private async fetchPlaces(query: string): Promise<{ elements: Element[] }> {
-    // Public providers can reject or time out requests. Try an independent
-    // provider within the deployment's 30-second execution limit.
-    const endpoints = ['https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+    // Allow time for public query queues; keep both attempts below the
+    // deployment's 60-second execution limit, including cold startup.
+    const endpoints = ['https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(`${endpoint}?${new URLSearchParams({ data: query })}`, { headers: { Accept: 'application/json', 'User-Agent': 'CrisisGrid/1.0 (https://crisisgrid-murex.vercel.app)' }, signal: AbortSignal.timeout(11000) });
+        const response = await fetch(`${endpoint}?${new URLSearchParams({ data: query })}`, { headers: { Accept: 'application/json', 'User-Agent': 'CrisisGrid/1.0 (https://crisisgrid-murex.vercel.app)' }, signal: AbortSignal.timeout(25000) });
         if (!response.ok) continue;
         const payload = await response.json() as { elements?: Element[]; remark?: string };
         if (Array.isArray(payload.elements) && !payload.remark) return { elements: payload.elements };
