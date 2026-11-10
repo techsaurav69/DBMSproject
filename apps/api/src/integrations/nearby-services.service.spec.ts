@@ -40,4 +40,15 @@ describe('NearbyServicesService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0][0]).not.toBe(fetchMock.mock.calls[1][0]);
   });
+
+  it('requests hospitals only and returns more than sixty nearby hospitals', async () => {
+    const elements = Array.from({ length: 75 }, (_, id) => ({ type: 'node', id, lat: 12, lon: 77, tags: { amenity: 'hospital', name: `Hospital ${id}` } }));
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ elements }) });
+    global.fetch = fetchMock;
+    const result = await new NearbyServicesService().search(12, 77, 5000, 'hospital');
+    expect(result.items).toHaveLength(75);
+    const query = new URL(fetchMock.mock.calls[0][0]).searchParams.get('data');
+    expect(query).toContain('amenity="hospital"');
+    expect(query).not.toContain('police');
+  });
 });

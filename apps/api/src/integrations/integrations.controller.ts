@@ -16,8 +16,8 @@ export class IntegrationsController {
 
   @Get('nearby-services')
   @ApiOperation({ summary: 'Find mapped rescue services within a radius of the map centre' })
-  nearbyServices(@Query('latitude') latitude: string, @Query('longitude') longitude: string, @Query('radius') radius: string) {
-    return this.nearby.search(latitude?.trim() ? Number(latitude) : NaN, longitude?.trim() ? Number(longitude) : NaN, radius?.trim() ? Number(radius) : NaN);
+  nearbyServices(@Query('latitude') latitude: string, @Query('longitude') longitude: string, @Query('radius') radius: string, @Query('category') category?: string) {
+    return this.nearby.search(latitude?.trim() ? Number(latitude) : NaN, longitude?.trim() ? Number(longitude) : NaN, radius?.trim() ? Number(radius) : NaN, category);
   }
 
   @Get('weather')
