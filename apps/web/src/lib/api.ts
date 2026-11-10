@@ -47,6 +47,7 @@ export type CreateRequestInput = { category: string; description: string; incide
 export type CreateSosInput = { addressText?: string; category: string; description: string; emergencyType: string; latitude: number; locationLabel: string; longitude: number; peopleCount?: number; severity: string };
 export type IncidentMessage = { authorName: string; body: string; createdAt: string; id: string; mine: boolean };
 export type GlobalChatMessage = IncidentMessage & { roleLabel: string };
+export type NearbyService = { id: string; name: string; category: string; latitude: number; longitude: number; distanceMeters: number; address: string; phone: string | null };
 export type CoordinatorUpdateScope = 'workflow' | 'request_queue' | 'dispatch' | 'supply_tracking';
 export type CoordinatorUpdate = { authorName: string; body: string; createdAt: string; id: string; repeatCount: number; scope: CoordinatorUpdateScope };
 export type CommunityGroup = { createdAt: string; creatorName: string; focusArea: string; id: string; joined: boolean; memberCount: number; name: string; pledgeCount: number; summary: string };
@@ -76,6 +77,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  nearbyServices: (accessToken: string, latitude: number, longitude: number, radius: number) => request<{ items: NearbyService[]; source: string; fetchedAt: string }>(`/integrations/nearby-services?latitude=${latitude}&longitude=${longitude}&radius=${radius}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   health: () => request<{ database: string; service: string; status: string }>('/health'),
   login: (input: LoginInput) => request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   me: (accessToken: string) => request<CurrentUser>('/auth/me', { headers: { Authorization: `Bearer ${accessToken}` } }),

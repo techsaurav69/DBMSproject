@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { OperationsOverview } from '../lib/api';
 import { IncidentChat } from './IncidentChat';
+import { NearbyServices } from './NearbyServices';
 
 type Props = { overview: OperationsOverview };
 type Selection = { kind: 'incident'; value: OperationsOverview['incidents'][number] } | { kind: 'resource'; value: OperationsOverview['resources'][number] } | null;
@@ -8,6 +9,7 @@ const windows = [{ label: '1 hour', value: 1 }, { label: '24 hours', value: 24 }
 function label(value: string): string { return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 
 export function OperationsMap({ overview }: Props): React.ReactElement {
+  const [centre, setCentre] = useState<{ latitude: number; longitude: number } | null>(null);
   const elementRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(Boolean(window.L));
   const [showIncidents, setShowIncidents] = useState(true);
@@ -40,8 +42,11 @@ export function OperationsMap({ overview }: Props): React.ReactElement {
       leaflet.circleMarker(position, { color: '#e9fffa', fillColor: '#39c4a3', fillOpacity: 1, radius: 7, weight: 2 }).addTo(map).bindTooltip(`Available ${resource.vehicleType.replaceAll('_', ' ')}`, { direction: 'top' }).on('click', () => setSelection({ kind: 'resource', value: resource }));
     });
     if (points.length > 1) map.fitBounds(leaflet.latLngBounds(points), { padding: [40, 40] });
+    const updateCentre = () => { const point = map.getCenter(); setCentre((current) => current?.latitude === point.lat && current?.longitude === point.lng ? current : { latitude: point.lat, longitude: point.lng }); };
+    updateCentre();
+    map.on('moveend', updateCentre);
     return () => map.remove();
-  }, [overview.resources, showIncidents, showResources, visibleIncidents]);
+  }, [isReady, overview.resources, showIncidents, showResources, visibleIncidents]);
 
-  return <><div className="operations-map-workspace"><div className="map-controls"><button type="button" className={showIncidents ? 'is-active' : ''} onClick={() => setShowIncidents((value) => !value)}>● Incidents</button><button type="button" className={showResources ? 'is-active' : ''} onClick={() => setShowResources((value) => !value)}>● Resources</button><label>Report window<input type="range" min="0" max="3" value={windowIndex} onChange={(event) => setWindowIndex(Number(event.target.value))} /><strong>{windows[windowIndex].label}</strong></label></div>{!isReady ? <div className="map-fallback"><span>⌁</span><strong>Map provider is unavailable</strong><p>Your operational data is still visible in the queues below.</p></div> : <div ref={elementRef} className="operations-map" aria-label="Interactive map showing fictional local incident and resource locations" />}{selection && <aside className="map-action-panel"><button type="button" className="map-action-panel__close" aria-label="Close map details" onClick={() => setSelection(null)}>×</button>{selection.kind === 'incident' ? <><p className="panel-kicker">INCIDENT SELECTED</p><h3>{label(selection.value.emergencyType)} · {label(selection.value.severity)}</h3><p>{selection.value.label ?? 'Location pending'}</p><small>{selection.value.description}</small><button type="button" onClick={() => setChatIncident(selection.value)}>Open coordination chat</button></> : <><p className="panel-kicker">RESOURCE SELECTED</p><h3>{selection.value.registrationCode}</h3><p>{label(selection.value.vehicleType)} · {selection.value.providerName}</p><small>Current local-demo availability: {label(selection.value.status)}.</small></>}</aside>}</div>{chatIncident && accessToken && <IncidentChat accessToken={accessToken} incident={chatIncident} onClose={() => setChatIncident(null)} />}</>;
+  return <><div className="operations-map-workspace"><div className="map-controls"><button type="button" className={showIncidents ? 'is-active' : ''} onClick={() => setShowIncidents((value) => !value)}>● Incidents</button><button type="button" className={showResources ? 'is-active' : ''} onClick={() => setShowResources((value) => !value)}>● Resources</button><label>Report window<input type="range" min="0" max="3" value={windowIndex} onChange={(event) => setWindowIndex(Number(event.target.value))} /><strong>{windows[windowIndex].label}</strong></label></div>{!isReady ? <div className="map-fallback"><span>⌁</span><strong>Map provider is unavailable</strong><p>Your operational data is still visible in the queues below.</p></div> : <div ref={elementRef} className="operations-map" aria-label="Interactive map showing fictional local incident and resource locations" />}{selection && <aside className="map-action-panel"><button type="button" className="map-action-panel__close" aria-label="Close map details" onClick={() => setSelection(null)}>×</button>{selection.kind === 'incident' ? <><p className="panel-kicker">INCIDENT SELECTED</p><h3>{label(selection.value.emergencyType)} · {label(selection.value.severity)}</h3><p>{selection.value.label ?? 'Location pending'}</p><small>{selection.value.description}</small><button type="button" onClick={() => setChatIncident(selection.value)}>Open coordination chat</button></> : <><p className="panel-kicker">RESOURCE SELECTED</p><h3>{selection.value.registrationCode}</h3><p>{label(selection.value.vehicleType)} · {selection.value.providerName}</p><small>Current local-demo availability: {label(selection.value.status)}.</small></>}</aside>}</div><NearbyServices centre={centre} accessToken={accessToken} />{chatIncident && accessToken && <IncidentChat accessToken={accessToken} incident={chatIncident} onClose={() => setChatIncident(null)} />}</>;
 }

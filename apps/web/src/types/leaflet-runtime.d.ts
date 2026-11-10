@@ -1,4 +1,4 @@
-type LeafletMap = { remove: () => void; fitBounds: (bounds: unknown, options?: { padding?: [number, number] }) => void; setView: (center: [number, number], zoom: number) => LeafletMap };
+type LeafletMap = { getCenter: () => { lat: number; lng: number }; on: (event: 'moveend', handler: () => void) => LeafletMap; remove: () => void; fitBounds: (bounds: unknown, options?: { padding?: [number, number] }) => void; setView: (center: [number, number], zoom: number) => LeafletMap };
 type LeafletLayer = { addTo: (map: LeafletMap) => LeafletLayer; bindTooltip: (content: string, options?: { direction?: string }) => LeafletLayer; on: (event: 'click', handler: () => void) => LeafletLayer };
 
 declare global {

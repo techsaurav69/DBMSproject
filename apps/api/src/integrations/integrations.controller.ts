@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { NearbyServicesService } from './nearby-services.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -11,7 +12,13 @@ import { IntegrationsService, type AdvisoryEarthquakeFeed, type GdacsEvents, typ
 @Roles('administrator', 'coordinator', 'provider_operator', 'responder', 'citizen')
 @Controller('integrations')
 export class IntegrationsController {
-  constructor(private readonly integrations: IntegrationsService) {}
+  constructor(private readonly integrations: IntegrationsService, private readonly nearby: NearbyServicesService) {}
+
+  @Get('nearby-services')
+  @ApiOperation({ summary: 'Find mapped rescue services within a radius of the map centre' })
+  nearbyServices(@Query('latitude') latitude: string, @Query('longitude') longitude: string, @Query('radius') radius: string) {
+    return this.nearby.search(latitude?.trim() ? Number(latitude) : NaN, longitude?.trim() ? Number(longitude) : NaN, radius?.trim() ? Number(radius) : NaN);
+  }
 
   @Get('weather')
   @ApiOperation({ summary: 'Get advisory weather for the fictional demo operations point' })
