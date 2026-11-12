@@ -77,6 +77,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  deleteRequest: (accessToken: string, id: string) => request<{ deleted: true }>(`/requests/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }),
   placeName: (accessToken: string, latitude: number, longitude: number) => request<{ name: string; source: string }>(`/integrations/place-name?latitude=${latitude}&longitude=${longitude}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   nearbyServices: (accessToken: string, latitude: number, longitude: number, radius: number, category = 'all') => request<{ items: NearbyService[]; source: string; fetchedAt: string }>(`/integrations/nearby-services?latitude=${latitude}&longitude=${longitude}&radius=${radius}&category=${encodeURIComponent(category)}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   health: () => request<{ database: string; service: string; status: string }>('/health'),

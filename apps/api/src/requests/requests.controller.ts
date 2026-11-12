@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -18,4 +18,7 @@ export class RequestsController {
   create(@CurrentUser() actor: AuthenticatedUser, @Body() dto: CreateRequestDto): Promise<AssistanceRequest> { return this.requests.create(actor, dto); }
   @Patch(':id/status') @UseGuards(RolesGuard) @Roles('administrator', 'coordinator', 'citizen') @ApiOperation({ summary: 'Advance an assistance request through an allowed status transition' })
   updateStatus(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string, @Body() dto: UpdateRequestStatusDto): Promise<AssistanceRequest> { return this.requests.updateStatus(actor, id, dto); }
+
+  @Delete(':id') @UseGuards(RolesGuard) @Roles('administrator') @ApiOperation({ summary: 'Delete an unassigned assistance request; administrators only' })
+  remove(@CurrentUser() actor: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string): Promise<{ deleted: true }> { return this.requests.remove(actor, id); }
 }

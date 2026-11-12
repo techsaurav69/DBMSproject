@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import type { CreateRequestDto, UpdateRequestStatusDto } from './dto/create-request.dto';
@@ -56,6 +56,31 @@ export class RequestsService {
       await client.query('COMMIT');
       return this.toRequest(updated.rows[0]);
     } catch (error: unknown) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+  }
+
+  async remove(actor: AuthenticatedUser, id: string): Promise<{ deleted: true }> {
+    if (!actor.roles.includes('administrator')) throw new ForbiddenException('Only administrators can delete assistance requests.');
+    const client = await this.database.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query<RequestRow>('SELECT id, category, urgency AS severity, status, description, people_count, created_at FROM emergency_requests WHERE id = $1 FOR UPDATE', [id]);
+      const request = result.rows[0];
+      if (!request) throw new NotFoundException('Assistance request not found.');
+      if (!['open', 'triaged'].includes(request.status)) throw new ConflictException('Only open or triaged requests can be deleted.');
+      const linked = await client.query<{ linked: boolean }>(`SELECT
+        EXISTS (SELECT 1 FROM assignments WHERE request_id = $1)
+        OR EXISTS (SELECT 1 FROM resource_allocations WHERE request_id = $1)
+        OR EXISTS (SELECT 1 FROM shelter_reservations WHERE request_id = $1) AS linked`, [id]);
+      if (linked.rows[0]?.linked) throw new ConflictException('This request has assignments or reservations and cannot be deleted.');
+      await client.query(`INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, details) VALUES ($1, 'request_deleted', 'request', $2, $3::jsonb)`, [actor.sub, id, JSON.stringify(request)]);
+      await client.query('DELETE FROM emergency_requests WHERE id = $1', [id]);
+      await client.query('COMMIT');
+      return { deleted: true };
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23503') throw new ConflictException('This request is linked to response records and cannot be deleted.');
+      throw error;
+    } finally { client.release(); }
   }
 
   private toRequest(row: RequestRow): AssistanceRequest { return { id: row.id, category: row.category, severity: row.severity, status: row.status, description: row.description, peopleCount: row.people_count, createdAt: row.created_at.toISOString() }; }
