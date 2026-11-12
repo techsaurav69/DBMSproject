@@ -2,6 +2,7 @@ import { type ReactElement, useCallback, useEffect, useState } from 'react';
 import { ApiRequestError, api, type AdvisoryEarthquakes, type AdvisoryWeather, type CurrentUser, type GdacsEvents, type NasaNaturalEvents, type OperationsOverview, type OsirisHazards } from '../lib/api';
 import { OperationsMap } from './OperationsMap';
 import { GlobalHazardMap } from './GlobalHazardMap';
+import { GlobalDisasterSummary } from './GlobalDisasterSummary';
 import { IncidentReporter } from './IncidentReporter';
 import { RequestComposer } from './RequestComposer';
 import { DispatchPlanner } from './DispatchPlanner';
@@ -28,10 +29,6 @@ function weatherLabel(code: number): string {
   if ([95, 96, 99].includes(code)) return 'Thunderstorm risk';
   return 'Conditions reported';
 }
-function Metric({ detail, label, tone, value }: { detail: string; label: string; tone: string; value: number }): ReactElement {
-  const icon = tone === 'critical' ? '!' : tone === 'resource' ? '↗' : tone === 'shelter' ? '⌂' : '◎';
-  return <article className="metric-card"><div className={`metric-icon metric-icon--${tone}`} aria-hidden="true">{icon}</div><p>{label}</p><strong>{value.toLocaleString()}</strong><small>{detail}</small></article>;
-}
 function TelemetryMetric({ detail, label, tone, value }: { detail: string; label: string; tone: string; value: string | number }): ReactElement {
   return <article className={`command-telemetry__metric command-telemetry__metric--${tone}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>;
 }
@@ -43,6 +40,7 @@ export function Workspace({ accessToken, onSignOut, theme, onToggleTheme, user }
   const [osirisHazards, setOsirisHazards] = useState<OsirisHazards | null>(null);
   const [nasaEvents, setNasaEvents] = useState<NasaNaturalEvents | null>(null);
   const [gdacsEvents, setGdacsEvents] = useState<GdacsEvents | null>(null);
+  const [failedSources, setFailedSources] = useState<string[]>([]);
   const [notificationRefresh, setNotificationRefresh] = useState(0);
   const [status, setStatus] = useState<LoadState>('idle');
   const [message, setMessage] = useState<string | null>(null);
@@ -63,6 +61,7 @@ export function Workspace({ accessToken, onSignOut, theme, onToggleTheme, user }
     if (osirisResult.status === 'fulfilled') setOsirisHazards(osirisResult.value);
     if (nasaResult.status === 'fulfilled') setNasaEvents(nasaResult.value);
     if (gdacsResult.status === 'fulfilled') setGdacsEvents(gdacsResult.value);
+    setFailedSources([[earthquakeResult, 'USGS'], [osirisResult, 'OSIRIS'], [nasaResult, 'NASA EONET'], [gdacsResult, 'GDACS']].filter(([result]) => typeof result !== 'string' && result.status === 'rejected').map(([, source]) => source as string));
     setNotificationRefresh((value) => value + 1);
   }, [accessToken]);
   useEffect(() => { void load(); }, [load]);
@@ -93,6 +92,7 @@ export function Workspace({ accessToken, onSignOut, theme, onToggleTheme, user }
       {status === 'error' && <div className="dashboard-error" role="alert"><strong>Local dashboard unavailable.</strong> {message}<button type="button" onClick={() => void load()}>Try again</button></div>}
       {status !== 'ready' && status !== 'error' && <div className="dashboard-loading"><span /><p>Loading the local operations picture…</p></div>}
       {actionError && <div className="dashboard-error" role="alert"><strong>Action unavailable.</strong> {actionError}</div>}
+      <GlobalDisasterSummary earthquakes={earthquakes} gdacs={gdacsEvents} nasa={nasaEvents} hazards={osirisHazards} failedSources={failedSources} loading={status === 'loading' || status === 'idle'} />
       {overview && <>
         <section className="command-telemetry" aria-label="Live command telemetry">
           <TelemetryMetric tone="critical" label="Incident watch" value={overview.summary.openIncidents} detail="Open local reports" />
@@ -102,8 +102,6 @@ export function Workspace({ accessToken, onSignOut, theme, onToggleTheme, user }
           <TelemetryMetric tone="weather" label="Weather advisory" value={weather ? `${Math.round(weather.temperatureC)}°` : '—'} detail={weather ? weatherLabel(weather.weatherCode) : 'Feed connecting'} />
           <TelemetryMetric tone="seismic" label="Seismic watch" value={earthquakes?.events[0]?.magnitude != null ? `M${earthquakes.events[0].magnitude.toFixed(1)}` : '—'} detail={earthquakes?.events[0]?.place ?? 'No signal loaded'} />
         </section>
-        <section id="overview" className="incident-strip"><div><span className="live-tag"><i />ACTIVE EXERCISE</span><h2>{overview.activeDisaster?.name ?? 'No active disaster record'}</h2><p>Database-backed view of the fictional local coordination exercise. Last server update {formatTime(overview.generatedAt)}.</p></div><div className="exercise-stat"><span>Open workload</span><strong>{overview.summary.openIncidents + overview.summary.openRequests}</strong><small>incidents + requests</small></div></section>
-        <section className="metrics-grid" aria-label="Operational metrics"><Metric tone="critical" label="Open incidents" value={overview.summary.openIncidents} detail="Require review or active handling" /><Metric tone="request" label="Open requests" value={overview.summary.openRequests} detail="Awaiting action in the queue" /><Metric tone="resource" label="Available vehicles" value={overview.summary.availableVehicles} detail="Demo resources eligible for dispatch" /><Metric tone="shelter" label="Shelter capacity" value={overview.summary.availableShelterSpaces} detail="Spaces currently available" /></section>
         <AlertCenter weather={weather} earthquakes={earthquakes} hazards={osirisHazards} onRefresh={() => void load()} />
         <section id="operations" className="command-grid command-grid--map"><article className="panel map-panel"><div className="panel-header"><div><p className="panel-kicker">LIVE OPERATIONS MAP</p><h2>Fictional Northbank area</h2></div><div className="map-legend"><span><i className="legend-dot legend-dot--incident" />Incident</span><span><i className="legend-dot legend-dot--resource" />Available resource</span></div></div><OperationsMap overview={overview} /><footer className="map-footer"><span>Data from local PostGIS records</span><span>Straight-line positions only · not vehicle tracking</span></footer></article><article className="panel readiness-panel"><div className="panel-header"><div><p className="panel-kicker">READINESS</p><h2>Resource posture</h2></div><span className="data-chip">LOCAL DB</span></div><div className="readiness-metric"><span>Supply units available</span><strong>{overview.summary.availableSupplyUnits.toLocaleString()}</strong><div><i style={{ width: `${Math.min(100, overview.summary.availableSupplyUnits / 2)}%` }} /></div></div><div className="readiness-metric"><span>Active assignments</span><strong>{overview.summary.activeAssignments}</strong><div><i className="assignment-bar" style={{ width: `${overview.summary.activeAssignments ? 58 : 8}%` }} /></div></div><div className="resource-list">{overview.resources.map((resource) => <div key={resource.id}><span className="resource-avatar">↗</span><p><strong>{resource.registrationCode}</strong><small>{resource.providerName}</small></p><em>{titleCase(resource.status)}</em></div>)}</div></article></section>
         <section id="requests" className="command-grid command-grid--queue"><article className="panel request-panel"><div className="panel-header"><div><p className="panel-kicker">PRIORITY QUEUE</p><h2>Assistance requests</h2></div><button type="button" className="quiet-button" onClick={() => scrollTo('dispatch')}>Open planner</button></div><div className="request-list">{overview.requests.length ? overview.requests.map((request) => <article key={request.id}><span className={`severity-dot severity-dot--${request.severity}`} /><div><p><strong>{titleCase(request.category)} support</strong><span>{request.label ?? 'Location pending'}</span></p><small>{request.description}</small></div><aside><em className={`status-badge status-badge--${request.status}`}>{titleCase(request.status)}</em>{request.peopleCount && <small>{request.peopleCount} people</small>}{request.status === 'triaged' && <button className="advance-button" type="button" onClick={() => scrollTo('dispatch')}>Plan dispatch</button>}{['open', 'assigned', 'in_progress'].includes(request.status) && <button className="advance-button" type="button" disabled={updatingRequestId === request.id} onClick={() => void advanceRequest(request.id, request.status)}>{updatingRequestId === request.id ? 'Saving…' : `Mark ${request.status === 'open' ? 'triaged' : request.status === 'assigned' ? 'in progress' : 'fulfilled'}`}</button>}</aside></article>) : <p className="empty-copy">No open assistance requests in the local database.</p>}</div></article><article className="panel incident-panel"><div className="panel-header"><div><p className="panel-kicker">INCIDENT WATCH</p><h2>Open reports</h2></div><span className="count-bubble">{overview.incidents.length}</span></div><div className="incident-list">{overview.incidents.map((incident) => <div key={incident.id}><span className={`incident-symbol incident-symbol--${incident.severity}`}>!</span><p><strong>{titleCase(incident.emergencyType)} · {titleCase(incident.severity)}</strong><small>{incident.label ?? 'Location pending'} · {formatTime(incident.reportedAt)}</small></p><em>{titleCase(incident.status)}</em></div>)}</div></article></section>

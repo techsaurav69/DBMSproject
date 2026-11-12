@@ -87,6 +87,11 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 @media (max-width: 600px) { .landing-actions { gap: .4rem; }.landing-actions .connection-state { display: none; }.theme-toggle { min-height: 2rem; padding: .4rem .55rem; }.command-topbar { margin: -1.35rem -1rem 0; padding: 1rem 1rem .75rem; }.command-main > [id] { scroll-margin-top: 13rem; }.topbar-right { width: 100%; justify-items: start; }.topbar-utilities { order: -1; }.topbar-actions { gap: .5rem; }.topbar-actions .sync-status { display: none; }.global-chat__trigger span { display: none; }.global-chat__trigger { width: 2.2rem; justify-content: center; padding: .4rem; }.global-chat__panel { position: fixed; top: 4.5rem; right: 1rem; } }
 
 .legend-dot--gdacs { background: #e68b3f; }
+.global-disaster-summary__actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: .8rem; }
+.global-disaster-summary__actions a { color: #cbfff1; font-size: .72rem; font-weight: 700; }
+.global-disaster-summary__note { margin: .65rem .2rem; color: #658079; font-size: .65rem; line-height: 1.5; }
+.metric-card .global-disaster-summary__stale { color: #a96a1a; }
+[data-theme='dark'] .global-disaster-summary__note { color: #a1b6b1; }
 
 .nearby-services { border-top: 1px solid #dce9e5; padding: 1.25rem; }
 .nearby-services > header, .nearby-services__filters { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .8rem; }
