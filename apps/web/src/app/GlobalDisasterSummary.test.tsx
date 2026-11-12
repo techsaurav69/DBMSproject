@@ -22,11 +22,30 @@ describe('real-world disaster overview', () => {
   });
   it('shows unavailable feeds as unavailable rather than zero disasters', () => {
     render(<GlobalDisasterSummary {...empty} />);
-    expect(screen.getByRole('heading', { name: 'Worldwide disaster feeds unavailable' })).toBeInTheDocument();
-    expect(screen.getAllByText('—')).toHaveLength(5);
+    expect(screen.getByRole('status')).toHaveTextContent('Worldwide disaster feeds unavailable');
+    expect(screen.getAllByText('—')).toHaveLength(4);
+    expect(screen.getAllByRole('heading', { name: 'No additional report available' })).toHaveLength(4);
   });
   it('labels retained data when a refresh fails', () => {
     render(<GlobalDisasterSummary {...empty} gdacs={alerts} failedSources={['GDACS']} />);
     expect(screen.getByText('Refresh failed · showing last successful data')).toBeInTheDocument();
+  });
+
+  it('shows four distinct priority reports with severe alerts first', () => {
+    const base = alerts.events[0];
+    const events: GdacsEvents['events'] = [
+      { ...base, id: 'green', title: 'Green report' },
+      { ...base, id: 'red', title: 'Red report', alertLevel: 'red' },
+      { ...base, id: 'orange1', title: 'Orange one', alertLevel: 'orange' },
+      { ...base, id: 'orange2', title: 'Orange two', alertLevel: 'orange' },
+      { ...base, id: 'duplicate', title: 'Red report', alertLevel: 'red' },
+      { ...base, id: 'other', title: 'Unranked report', alertLevel: 'unknown' },
+    ];
+    render(<GlobalDisasterSummary {...empty} gdacs={{ ...alerts, events }} />);
+    const cards = within(screen.getByLabelText('Four priority disaster reports')).getAllByRole('article');
+    expect(cards).toHaveLength(4);
+    expect(within(cards[0]).getByRole('heading')).toHaveTextContent('Red report');
+    expect(screen.getAllByRole('heading', { name: 'Red report' })).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: 'Unranked report' })).not.toBeInTheDocument();
   });
 });
