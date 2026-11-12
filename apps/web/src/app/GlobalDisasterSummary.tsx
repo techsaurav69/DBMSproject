@@ -24,11 +24,22 @@ export function GlobalDisasterSummary({ earthquakes, gdacs, nasa, hazards, faile
     ...signals.map((e, i) => ({ id: `osiris:${i}`, title: e.summary, kind: e.kind, severity: 'Hazard signal', priority: 0, source: 'OSIRIS', published: e.time, fetchedAt: hazards!.fetchedAt, url: e.sourceUrl, latitude: e.latitude, longitude: e.longitude })),
   ];
   const seen = new Set<string>();
-  const featured = candidates.sort((a, b) => b.priority - a.priority || (Date.parse(b.published ?? '') || 0) - (Date.parse(a.published ?? '') || 0)).filter((e) => {
+  const ranked = candidates.sort((a, b) => b.priority - a.priority || (Date.parse(b.published ?? '') || 0) - (Date.parse(a.published ?? '') || 0)).filter((e) => {
     const key = `${e.source}:${e.title.toLowerCase()}:${e.latitude.toFixed(2)},${e.longitude.toFixed(2)}`;
     if (seen.has(key)) return false;
     seen.add(key); return true;
-  }).slice(0, 4);
+  });
+  const featured: Report[] = [];
+  const kinds = new Set<string>();
+  const kindKey = (value: string) => /cyclone|storm/i.test(value) ? 'storm' : /wildfire|fire/i.test(value) ? 'fire' : /flood/i.test(value) ? 'flood' : value.toLowerCase();
+  for (const event of ranked) {
+    const key = kindKey(event.kind);
+    if (!kinds.has(key) && featured.length < 4) { featured.push(event); kinds.add(key); }
+  }
+  for (const event of ranked) {
+    if (featured.length >= 4) break;
+    if (!featured.includes(event)) featured.push(event);
+  }
   const feeds = [
     { source: 'GDACS', label: 'Global disaster alerts', value: gdacs ? alerts.length : null, updated: gdacs?.fetchedAt },
     { source: 'USGS', label: 'Earthquakes on world map', value: earthquakes ? quakes.length : null, updated: earthquakes?.fetchedAt },
@@ -37,7 +48,7 @@ export function GlobalDisasterSummary({ earthquakes, gdacs, nasa, hazards, faile
   ];
   const available = feeds.filter((feed) => feed.value !== null).length;
   return <section id="overview" className="disaster-watch" aria-label="Real-world disaster overview">
-    <header className="disaster-watch__hero"><div><div className="disaster-watch__eyebrow"><span className="disaster-watch__pulse" />GLOBAL INTELLIGENCE <span>/</span> DISASTER WATCH</div><h2>Eyes on the world.<br /><span>Ready for what matters.</span></h2><p>Four priority reports from the world disaster map.<br />Ranked by source alert level, then report time.</p><div className="disaster-watch__hero-footer"><span>{loading ? 'Refreshing feeds…' : 'Auto-refresh · every 60 seconds'}</span><a href="#global-map">Explore world map <span aria-hidden="true">↗</span></a></div></div><div className="disaster-watch__globe" aria-hidden="true"><svg viewBox="0 0 280 200" fill="none"><ellipse cx="140" cy="100" rx="86" ry="86" /><ellipse cx="140" cy="100" rx="42" ry="86" /><ellipse cx="140" cy="100" rx="70" ry="86" /><ellipse cx="140" cy="100" rx="86" ry="32" /><ellipse cx="140" cy="100" rx="86" ry="63" /><path d="M54 100h172M140 14v172" /><circle cx="180" cy="65" r="5" /><circle cx="104" cy="124" r="4" /></svg><span>WORLDWIDE COVERAGE</span></div><div className="disaster-watch__feed-health"><strong>{available}<small>/ 4</small></strong><span>feeds connected</span></div></header>
+    <header className="disaster-watch__hero"><div><div className="disaster-watch__eyebrow"><span className="disaster-watch__pulse" />GLOBAL INTELLIGENCE <span>/</span> DISASTER WATCH</div><h2>Eyes on the world.<br /><span>Ready for what matters.</span></h2><p>Four priority reports from the world disaster map.<br />Major hazard types, ranked by alert level and report time.</p><div className="disaster-watch__hero-footer"><span>{loading ? 'Refreshing feeds…' : 'Auto-refresh · every 60 seconds'}</span><a href="#global-map">Explore world map <span aria-hidden="true">↗</span></a></div></div><div className="disaster-watch__globe" aria-hidden="true"><svg viewBox="0 0 280 200" fill="none"><ellipse cx="140" cy="100" rx="86" ry="86" /><ellipse cx="140" cy="100" rx="42" ry="86" /><ellipse cx="140" cy="100" rx="70" ry="86" /><ellipse cx="140" cy="100" rx="86" ry="32" /><ellipse cx="140" cy="100" rx="86" ry="63" /><path d="M54 100h172M140 14v172" /><circle cx="180" cy="65" r="5" /><circle cx="104" cy="124" r="4" /></svg><span>WORLDWIDE COVERAGE</span></div><div className="disaster-watch__feed-health"><strong>{available}<small>/ 4</small></strong><span>feeds connected</span></div></header>
     <div className="disaster-watch__section-heading"><h3>Priority disaster reports <span>{featured.length.toString().padStart(2, '0')}</span></h3><span>Source reports · no simulated events</span></div>
     <div className="disaster-watch__events" aria-label="Four priority disaster reports">{Array.from({ length: 4 }, (_, index) => {
       const event = featured[index];

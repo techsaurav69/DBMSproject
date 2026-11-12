@@ -48,4 +48,16 @@ describe('real-world disaster overview', () => {
     expect(screen.getAllByRole('heading', { name: 'Red report' })).toHaveLength(1);
     expect(screen.queryByRole('heading', { name: 'Unranked report' })).not.toBeInTheDocument();
   });
+
+  it('features different hazard types when several high-priority droughts are present', () => {
+    const base = alerts.events[0];
+    const events: GdacsEvents['events'] = [1, 2, 3, 4].map((id) => ({ ...base, id: String(id), title: `Drought ${id}`, eventType: 'DR', alertLevel: 'orange' }));
+    events.push({ ...base, id: 'flood', title: 'Flood report', eventType: 'FL' }, { ...base, id: 'storm', title: 'Cyclone report', eventType: 'TC' }, { ...base, id: 'quake', title: 'Earthquake report', eventType: 'EQ' });
+    render(<GlobalDisasterSummary {...empty} gdacs={{ ...alerts, events }} />);
+    const cards = within(screen.getByLabelText('Four priority disaster reports')).getAllByRole('article');
+    expect(cards).toHaveLength(4);
+    expect(screen.getByRole('heading', { name: 'Flood report' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Cyclone report' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Earthquake report' })).toBeInTheDocument();
+  });
 });
