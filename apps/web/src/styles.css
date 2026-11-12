@@ -88,6 +88,8 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 
 .legend-dot--gdacs { background: #e68b3f; }
 .request-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
+.command-date { margin: .35rem 0 .55rem; color: #607c72; font-size: .78rem; font-weight: 600; line-height: 1.5; }
+[data-theme='dark'] .command-date { color: #a5c4b7; }
 .sos-place-matches { display: grid; gap: .45rem; margin: 0; padding: .7rem; border: 1px solid #c9dfd6; border-radius: .6rem; }
 .sos-place-matches legend { color: #356f5d; font-size: .73rem; font-weight: 700; }
 .sos-place-matches button { padding: .6rem; border: 1px solid #d3e5dc; border-radius: .5rem; text-align: left; color: #285c4b; background: #f1faf6; font: inherit; font-size: .73rem; }
