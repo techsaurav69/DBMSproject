@@ -59,7 +59,7 @@ export class RequestsService {
   }
 
   async remove(actor: AuthenticatedUser, id: string): Promise<{ deleted: true }> {
-    if (!actor.roles.includes('administrator')) throw new ForbiddenException('Only administrators can delete assistance requests.');
+    if (!actor.roles.includes('coordinator')) throw new ForbiddenException('Only coordinators can delete assistance requests.');
     const client = await this.database.connect();
     try {
       await client.query('BEGIN');

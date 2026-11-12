@@ -19,6 +19,6 @@ export class RequestsController {
   @Patch(':id/status') @UseGuards(RolesGuard) @Roles('administrator', 'coordinator', 'citizen') @ApiOperation({ summary: 'Advance an assistance request through an allowed status transition' })
   updateStatus(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string, @Body() dto: UpdateRequestStatusDto): Promise<AssistanceRequest> { return this.requests.updateStatus(actor, id, dto); }
 
-  @Delete(':id') @UseGuards(RolesGuard) @Roles('administrator') @ApiOperation({ summary: 'Delete an unassigned assistance request; administrators only' })
+  @Delete(':id') @UseGuards(RolesGuard) @Roles('coordinator') @ApiOperation({ summary: 'Delete an unassigned assistance request; coordinators only' })
   remove(@CurrentUser() actor: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string): Promise<{ deleted: true }> { return this.requests.remove(actor, id); }
 }

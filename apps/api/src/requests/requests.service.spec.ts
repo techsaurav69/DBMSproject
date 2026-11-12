@@ -3,7 +3,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { RequestsService } from './requests.service';
 
 describe('Assistance request deletion', () => {
-  const actor: AuthenticatedUser = { sub: 'admin-id', email: 'admin@example.test', roles: ['administrator'] };
+  const actor: AuthenticatedUser = { sub: 'coordinator-id', email: 'coordinator@example.test', roles: ['coordinator'] };
   const record = { id: 'request-id', category: 'medical', status: 'open', description: 'Test request', people_count: 1, severity: 'high', created_at: new Date() };
   let client: { query: jest.Mock; release: jest.Mock };
   let database: { connect: jest.Mock };
@@ -21,8 +21,8 @@ describe('Assistance request deletion', () => {
       .mockResolvedValueOnce({ rows: [{ linked }] });
   }
 
-  it('rejects non-admins before accessing the database', async () => {
-    await expect(service.remove({ ...actor, roles: ['coordinator'] }, record.id)).rejects.toBeInstanceOf(ForbiddenException);
+  it.each(['administrator', 'citizen', 'provider_operator', 'responder'] as const)('rejects %s accounts before accessing the database', async (role) => {
+    await expect(service.remove({ ...actor, roles: [role] }, record.id)).rejects.toBeInstanceOf(ForbiddenException);
     expect(database.connect).not.toHaveBeenCalled();
   });
 
