@@ -87,7 +87,8 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 @media (max-width: 600px) { .landing-actions { gap: .4rem; }.landing-actions .connection-state { display: none; }.theme-toggle { min-height: 2rem; padding: .4rem .55rem; }.command-topbar { margin: -1.35rem -1rem 0; padding: 1rem 1rem .75rem; }.command-main > [id] { scroll-margin-top: 13rem; }.topbar-right { width: 100%; justify-items: start; }.topbar-utilities { order: -1; }.topbar-actions { gap: .5rem; }.topbar-actions .sync-status { display: none; }.global-chat__trigger span { display: none; }.global-chat__trigger { width: 2.2rem; justify-content: center; padding: .4rem; }.global-chat__panel { position: fixed; top: 4.5rem; right: 1rem; } }
 
 .legend-dot--gdacs { background: #e68b3f; }
-.delete-request-button { margin-top: .25rem; border: 1px solid #ecc6cc; border-radius: .35rem; padding: .35rem .45rem; color: #b03d4e; background: #fff4f5; font-size: .58rem; font-weight: 700; }
+.request-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
+.delete-request-button { border: 1px solid #ecc6cc; border-radius: .35rem; padding: .3rem .42rem; color: #b03d4e; background: #fff4f5; font-size: .53rem; font-weight: 800; }
 .delete-request-button:hover:not(:disabled) { color: #fff; background: #b03d4e; }
 .delete-request-button:disabled { opacity: .5; cursor: not-allowed; }
 [data-theme='dark'] .delete-request-button { color: #ffb4be; background: #3b222a; border-color: #74404b; }
