@@ -50,10 +50,12 @@ export type GlobalChatMessage = IncidentMessage & { roleLabel: string };
 export type NearbyService = { id: string; name: string; category: string; latitude: number; longitude: number; distanceMeters: number; address: string; phone: string | null };
 export type CoordinatorUpdateScope = 'workflow' | 'request_queue' | 'dispatch' | 'supply_tracking';
 export type CoordinatorUpdate = { authorName: string; body: string; createdAt: string; id: string; repeatCount: number; scope: CoordinatorUpdateScope };
-export type CommunityGroup = { createdAt: string; creatorName: string; focusArea: string; id: string; joined: boolean; memberCount: number; name: string; pledgeCount: number; summary: string };
+export type CommunityGroup = { createdAt: string; creatorName: string; focusArea: string; id: string; joined: boolean; memberCount: number; name: string; pledgeCount: number; summary: string; location: string; status: 'pending' | 'approved' | 'rejected'; rejectionReason: string | null; canManage: boolean; hasLogo: boolean; hasQr: boolean; qrCaption: string; mediaVersion: number; announcement: string; announcementAt: string | null };
 export type CommunityPledge = { contributorName: string; createdAt: string; details: string; groupId: string; groupName: string; id: string; kind: string; quantity: number; unitLabel: string };
-export type CommunityOverview = { groups: CommunityGroup[]; pledges: CommunityPledge[] };
-export type CreateCommunityGroupInput = { focusArea: string; name: string; summary: string };
+export type CommunityOverview = { groups: CommunityGroup[]; pledges: CommunityPledge[]; canModerate: boolean };
+export type CommunityMediaInput = { logo?: string | null; qr?: string | null; qrCaption?: string };
+export type CreateCommunityGroupInput = CommunityMediaInput & { focusArea: string; name: string; summary: string; location: string };
+export type CommunityMessage = { id: string; body: string; senderName: string; createdAt: string; mine: boolean };
 export type CreateCommunityPledgeInput = { contributionKind: string; details: string; quantity: number; unitLabel: string };
 
 export class ApiRequestError extends Error {
@@ -110,6 +112,13 @@ export const api = {
   coordinatorUpdates: (accessToken: string, scope: CoordinatorUpdateScope) => request<{ items: CoordinatorUpdate[] }>(`/coordinator-updates/${scope}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   createCoordinatorUpdate: (accessToken: string, scope: CoordinatorUpdateScope, body: string) => request<CoordinatorUpdate>(`/coordinator-updates/${scope}`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ body }) }),
   communityOverview: (accessToken: string) => request<CommunityOverview>('/community/overview', { headers: { Authorization: `Bearer ${accessToken}` } }),
+  communityGroup: (accessToken: string, id: string) => request<CommunityGroup>(`/community/groups/${id}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+  reviewCommunity: (accessToken: string, id: string, status: 'approved' | 'rejected', reason?: string) => request<CommunityGroup>(`/community/groups/${id}/review`, { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ status, reason }) }),
+  communityImage: (accessToken: string, id: string, kind: 'logo' | 'qr') => request<{ dataUrl: string }>(`/community/groups/${id}/images/${kind}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+  updateCommunityMedia: (accessToken: string, id: string, input: CommunityMediaInput) => request<CommunityGroup>(`/community/groups/${id}/media`, { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify(input) }),
+  communityMessages: (accessToken: string, id: string, before?: string) => request<{ items: CommunityMessage[]; hasMore: boolean }>(`/community/groups/${id}/messages${before ? `?before=${encodeURIComponent(before)}` : ''}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+  sendCommunityMessage: (accessToken: string, id: string, body: string) => request<CommunityMessage>(`/community/groups/${id}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ body }) }),
+  pinCommunityAnnouncement: (accessToken: string, id: string, body: string) => request<CommunityGroup>(`/community/groups/${id}/announcement`, { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ body }) }),
   createCommunityGroup: (accessToken: string, input: CreateCommunityGroupInput) => request<CommunityGroup>('/community/groups', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify(input) }),
   joinCommunityGroup: (accessToken: string, id: string) => request<{ joined: boolean }>(`/community/groups/${id}/join`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }),
   createCommunityPledge: (accessToken: string, groupId: string, input: CreateCommunityPledgeInput) => request<CommunityPledge>(`/community/groups/${groupId}/pledges`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify(input) }),
