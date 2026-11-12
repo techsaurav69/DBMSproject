@@ -1,32 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiRequestError, type NearbyService } from '../lib/api';
 
-type Props = { centre: { latitude: number; longitude: number } | null; accessToken: string | null };
+import type { LiveLocation } from './useLiveLocation';
+
+type Props = { location: LiveLocation; centre: { latitude: number; longitude: number } | null; accessToken: string | null };
 const categories: Record<string, string> = { hospital: 'Hospital', clinic: 'Clinic', police: 'Police station', fire_station: 'Fire station', ambulance_station: 'Ambulance station', rescue_station: 'Rescue station', disaster_response: 'Disaster response', lifeguard: 'Lifeguard' };
 
-export function NearbyServices({ centre: mapCentre, accessToken }: Props): React.ReactElement {
+export function NearbyServices({ centre: mapCentre, accessToken, location }: Props): React.ReactElement {
   const [locationMode, setLocationMode] = useState('live');
-  const [liveCentre, setLiveCentre] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationError, setLocationError] = useState('');
-  const [locationAttempt, setLocationAttempt] = useState(0);
+  const liveCentre = location.position;
+  const locationError = location.error;
   const centre = locationMode === 'live' ? liveCentre : mapCentre;
-  useEffect(() => {
-    if (locationMode !== 'live') return;
-    setLocationError('');
-    if (!navigator.geolocation) { setLocationError('This browser cannot provide a location. Choose map centre instead.'); return; }
-    const watch = navigator.geolocation.watchPosition((position) => {
-      setLiveCentre((previous) => {
-        const latitude = Number(position.coords.latitude.toFixed(4));
-        const longitude = Number(position.coords.longitude.toFixed(4));
-        return previous?.latitude === latitude && previous?.longitude === longitude ? previous : { latitude, longitude };
-      });
-      setLocationError('');
-    }, (reason) => {
-      setLiveCentre(null);
-      setLocationError(reason.code === 1 ? 'Location permission was denied. Allow location access in your browser, or select map centre.' : 'Your device location is unavailable. Retry or select map centre.');
-    }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
-    return () => navigator.geolocation.clearWatch(watch);
-  }, [locationMode, locationAttempt]);
   const [radius, setRadius] = useState(5000);
   const [items, setItems] = useState<NearbyService[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -73,7 +57,7 @@ export function NearbyServices({ centre: mapCentre, accessToken }: Props): React
   const visible = items.filter((item) => item.distanceMeters <= radius && (filter === 'all' || item.category === filter));
   return <section className="nearby-services" aria-label="Nearby rescue services">
     <header><div><p className="panel-kicker">NEARBY SUPPORT</p><h2>Nearby rescue services</h2><p>List hospitals and rescue services within the selected distance of your location.</p></div><label>Search radius<select value={radius} onChange={(event) => setRadius(Number(event.target.value))}>{[1000, 2000, 5000, 10000].map((value) => <option key={value} value={value}>{value / 1000} km</option>)}</select></label></header>
-    <div className="nearby-services__filters"><label>Search from<select value={locationMode} onChange={(event) => setLocationMode(event.target.value)}><option value="live">My live location</option><option value="map">Map centre</option></select></label>{locationMode === 'live' && <button type="button" className="refresh-button" onClick={() => setLocationAttempt((value) => value + 1)}>Locate me again</button>}</div>
+    <div className="nearby-services__filters"><label>Search from<select value={locationMode} onChange={(event) => setLocationMode(event.target.value)}><option value="live">My live location</option><option value="map">Map centre</option></select></label>{locationMode === 'live' && <button type="button" className="refresh-button" onClick={location.retry}>Locate me again</button>}</div>
     {locationError && locationMode === 'live' && <p className="form-error" role="alert">{locationError}</p>}
     {centre && <p className="nearby-services__centre">{locationMode === 'live' ? 'Your live location' : 'Map centre'}: {centre.latitude.toFixed(4)}, {centre.longitude.toFixed(4)} · Straight-line distances</p>}
     <div className="nearby-services__filters"><label>Service type<select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All services</option>{Object.entries(categories).map(([key, value]) => <option key={key} value={key}>{value}</option>)}</select></label><button type="button" className="refresh-button" disabled={refreshing || !centre} onClick={() => setRefresh((value) => value + 1)}>{refreshing ? 'Updating…' : 'Refresh now'}</button></div>

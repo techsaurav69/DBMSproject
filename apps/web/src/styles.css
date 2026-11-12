@@ -87,6 +87,9 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 @media (max-width: 600px) { .landing-actions { gap: .4rem; }.landing-actions .connection-state { display: none; }.theme-toggle { min-height: 2rem; padding: .4rem .55rem; }.command-topbar { margin: -1.35rem -1rem 0; padding: 1rem 1rem .75rem; }.command-main > [id] { scroll-margin-top: 13rem; }.topbar-right { width: 100%; justify-items: start; }.topbar-utilities { order: -1; }.topbar-actions { gap: .5rem; }.topbar-actions .sync-status { display: none; }.global-chat__trigger span { display: none; }.global-chat__trigger { width: 2.2rem; justify-content: center; padding: .4rem; }.global-chat__panel { position: fixed; top: 4.5rem; right: 1rem; } }
 
 .legend-dot--gdacs { background: #e68b3f; }
+.command-grid--map { grid-template-columns: minmax(0, 1fr); }
+.command-grid--map .operations-map { height: 440px; }
+@media (max-width: 760px) { .command-grid--map .operations-map { height: 320px; } }
 
 .disaster-watch { margin-top: 1.35rem; --watch-ink: #193e39; --watch-muted: #68817d; }
 .disaster-watch__hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 2rem; overflow: hidden; padding: 2rem 2.2rem; border: 1px solid #235e54; border-radius: 1.2rem; color: #effffb; background: radial-gradient(ellipse at 76% 20%, #28695b 0, transparent 53%), linear-gradient(120deg, #0e302e, #174e43); }
