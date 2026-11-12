@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type LiveLocation = { position: { latitude: number; longitude: number } | null; error: string; retry: () => void };
+export type LiveLocation = { position: { latitude: number; longitude: number } | null; placeName?: string | null; error: string; retry: () => void };
 
 export function useLiveLocation(): LiveLocation {
   const [position, setPosition] = useState<LiveLocation['position']>(null);

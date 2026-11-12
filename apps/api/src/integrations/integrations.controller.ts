@@ -1,5 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { NearbyServicesService } from './nearby-services.service';
+import { PlaceNameService } from './place-name.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -12,7 +13,13 @@ import { IntegrationsService, type AdvisoryEarthquakeFeed, type GdacsEvents, typ
 @Roles('administrator', 'coordinator', 'provider_operator', 'responder', 'citizen')
 @Controller('integrations')
 export class IntegrationsController {
-  constructor(private readonly integrations: IntegrationsService, private readonly nearby: NearbyServicesService) {}
+  constructor(private readonly integrations: IntegrationsService, private readonly nearby: NearbyServicesService, private readonly places: PlaceNameService) {}
+
+  @Get('place-name')
+  @ApiOperation({ summary: 'Resolve the user location to an approximate locality name' })
+  placeName(@Query('latitude') latitude: string, @Query('longitude') longitude: string) {
+    return this.places.reverse(latitude?.trim() ? Number(latitude) : NaN, longitude?.trim() ? Number(longitude) : NaN);
+  }
 
   @Get('nearby-services')
   @ApiOperation({ summary: 'Find mapped rescue services within a radius of the map centre' })
