@@ -8,19 +8,23 @@ type Props = { onAuthenticated: (response: AuthResponse) => void };
 export function AuthPage({ onAuthenticated }: Props): ReactElement {
   const [mode, setMode] = useState<Mode>('login');
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('coordinator.demo@crisisgrid.local');
-  const [password, setPassword] = useState('DemoOnly!ChangeBeforeProduction');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    // Read the form's actual values so browser/password-manager autofill works
+    // even when it does not dispatch React change events.
+    const form = new FormData(event.currentTarget);
+    const credentials = { email: String(form.get('email') ?? '').trim(), password: String(form.get('password') ?? '') };
     setError(null);
     setIsSubmitting(true);
     try {
       const response = mode === 'login'
-        ? await api.login({ email, password })
-        : await api.register({ displayName, email, password });
+        ? await api.login(credentials)
+        : await api.register({ displayName: String(form.get('displayName') ?? '').trim(), ...credentials });
       onAuthenticated(response);
     } catch (reason: unknown) {
       setError(reason instanceof ApiRequestError ? reason.message : 'Unable to reach the local API.');
@@ -51,16 +55,16 @@ export function AuthPage({ onAuthenticated }: Props): ReactElement {
         {mode === 'register' && (
           <label>
             Display name
-            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} minLength={2} maxLength={120} required autoComplete="name" placeholder="Your name" />
+            <input name="displayName" value={displayName} onChange={(event) => setDisplayName(event.target.value)} minLength={2} maxLength={120} required autoComplete="name" placeholder="Your name" />
           </label>
         )}
         <label>
           Email address
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required autoComplete="email" />
+          <input name="email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" required autoComplete={mode === 'login' ? 'username' : 'email'} />
         </label>
         <label>
           Password
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={12} maxLength={128} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+          <input name="password" value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={12} maxLength={128} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
         </label>
         {mode === 'register' && <p className="field-note">Use 12+ characters with upper/lowercase letters and a number.</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
@@ -70,7 +74,6 @@ export function AuthPage({ onAuthenticated }: Props): ReactElement {
         </button>
       </form>
 
-      {mode === 'login' && <p className="demo-hint">Demo password is prefilled for the seeded coordinator account.</p>}
     </section>
   );
 }
