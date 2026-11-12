@@ -42,13 +42,15 @@ export type CoordinationCandidates = {
 export type SupplyTracking = { assignments: Array<{ assignmentId: string; currentLatitude: number; currentLongitude: number; destinationLabel: string | null; destinationLatitude: number; destinationLongitude: number; etaMinutes: number; originLatitude: number; originLongitude: number; progress: number; providerName: string; registrationCode: string; status: string; supplies: string; vehicleType: string }> };
 export type NasaNaturalEvents = { advisory: true; events: Array<{ category: string; id: string; latitude: number | null; longitude: number | null; sourceUrl: string; time: string | null; title: string }>; fetchedAt: string; source: 'NASA EONET' };
 export type GdacsEvents = { advisory: true; events: Array<{ alertLevel: 'green' | 'orange' | 'red' | 'unknown'; eventType: string; id: string; latitude: number | null; longitude: number | null; sourceUrl: string; time: string | null; title: string }>; fetchedAt: string; source: 'GDACS' };
-export type NotificationItem = { id: string; kind: 'assignment' | 'inventory' | 'request' | 'sos'; message: string; read: boolean; severity: 'critical' | 'high' | 'medium'; timestamp: string; title: string };
+export type NotificationLocation = { latitude: number; longitude: number; label: string; incidentId: string; requestId: string };
+export type NotificationItem = { id: string; kind: 'assignment' | 'inventory' | 'request' | 'sos'; message: string; read: boolean; severity: 'critical' | 'high' | 'medium' | 'low'; timestamp: string; title: string; location?: NotificationLocation };
 export type CreateIncidentInput = { addressText?: string; description: string; emergencyType: string; latitude: number; locationLabel: string; longitude: number; severity: string };
 export type CreateRequestInput = { category: string; description: string; incidentId: string; peopleCount?: number; urgency: string };
-export type CreateSosInput = { addressText?: string; category: string; description: string; emergencyType: string; latitude: number; locationLabel: string; longitude: number; peopleCount?: number; severity: string };
+export type CreateSosInput = { addressText?: string; category: string; description: string; emergencyType: string; latitude: number; locationLabel: string; longitude: number; peopleCount?: number; severity: string; locationSource?: 'manual' | 'gps' | 'operator' };
 export type IncidentMessage = { authorName: string; body: string; createdAt: string; id: string; mine: boolean };
 export type GlobalChatMessage = IncidentMessage & { roleLabel: string };
 export type NearbyService = { id: string; name: string; category: string; latitude: number; longitude: number; distanceMeters: number; address: string; phone: string | null };
+export type NearbyServicesResult = { items: NearbyService[]; source: string; fetchedAt: string; mode?: 'live' | 'cached' | 'directory'; dataDate?: string; notice?: string };
 export type CoordinatorUpdateScope = 'workflow' | 'request_queue' | 'dispatch' | 'supply_tracking';
 export type CoordinatorUpdate = { authorName: string; body: string; createdAt: string; id: string; repeatCount: number; scope: CoordinatorUpdateScope };
 export type CommunityGroup = { createdAt: string; creatorName: string; focusArea: string; id: string; joined: boolean; memberCount: number; name: string; pledgeCount: number; summary: string; location: string; status: 'pending' | 'approved' | 'rejected'; rejectionReason: string | null; canManage: boolean; hasLogo: boolean; hasQr: boolean; qrCaption: string; mediaVersion: number; announcement: string; announcementAt: string | null };
@@ -80,10 +82,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  searchPlaces: (accessToken: string, query: string) => request<{ items: Array<{ name: string; latitude: number; longitude: number }> }>(`/integrations/place-search?query=${encodeURIComponent(query)}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   localConditions: (accessToken: string, latitude: number, longitude: number) => request<LocalConditions>(`/integrations/local-conditions?latitude=${latitude}&longitude=${longitude}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   deleteRequest: (accessToken: string, id: string) => request<{ deleted: true }>(`/requests/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }),
   placeName: (accessToken: string, latitude: number, longitude: number) => request<{ name: string; source: string }>(`/integrations/place-name?latitude=${latitude}&longitude=${longitude}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-  nearbyServices: (accessToken: string, latitude: number, longitude: number, radius: number, category = 'all') => request<{ items: NearbyService[]; source: string; fetchedAt: string }>(`/integrations/nearby-services?latitude=${latitude}&longitude=${longitude}&radius=${radius}&category=${encodeURIComponent(category)}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+  nearbyServices: (accessToken: string, latitude: number, longitude: number, radius: number, category = 'all') => request<NearbyServicesResult>(`/integrations/nearby-services?latitude=${latitude}&longitude=${longitude}&radius=${radius}&category=${encodeURIComponent(category)}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   health: () => request<{ database: string; service: string; status: string }>('/health'),
   login: (input: LoginInput) => request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   me: (accessToken: string) => request<CurrentUser>('/auth/me', { headers: { Authorization: `Bearer ${accessToken}` } }),

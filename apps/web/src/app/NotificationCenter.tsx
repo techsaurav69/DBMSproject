@@ -1,25 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type NotificationItem } from '../lib/api';
 
-type Props = { accessToken: string; refreshKey: number };
+type Props = { accessToken: string; refreshKey: number; onOpen?: (notification: NotificationItem) => void };
 
 function timeLabel(value: string): string { return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 
-export function NotificationCenter({ accessToken, refreshKey }: Props): React.ReactElement {
+export function NotificationCenter({ accessToken, refreshKey, onOpen }: Props): React.ReactElement {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [open, setOpen] = useState(false);
   const [newSinceLastCheck, setNewSinceLastCheck] = useState(false);
+  const [error, setError] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
   const unreadCount = items.filter((item) => !item.read).length;
 
   const load = useCallback(async (): Promise<void> => {
     try {
       const result = await api.notifications(accessToken);
+      setError('');
       setItems((current) => {
         if (current.length && result.items.some((item) => !item.read && !current.some((existing) => existing.id === item.id))) setNewSinceLastCheck(true);
         return result.items;
       });
-    } catch { /* The command workspace remains usable if notifications cannot load. */ }
+    } catch { setError('Notifications could not be refreshed. Please retry.'); }
   }, [accessToken]);
   useEffect(() => { void load(); }, [load, refreshKey]);
   useEffect(() => { const timer = window.setInterval(() => void load(), 15_000); return () => window.clearInterval(timer); }, [load]);
@@ -33,9 +35,14 @@ export function NotificationCenter({ accessToken, refreshKey }: Props): React.Re
     setItems((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
   }
   async function markAllRead(): Promise<void> {
-    await api.markAllNotificationsRead(accessToken);
-    setItems((current) => current.map((item) => ({ ...item, read: true })));
+    try { await api.markAllNotificationsRead(accessToken); setItems((current) => current.map((item) => ({ ...item, read: true }))); }
+    catch { setError('Notifications could not be marked read. Please retry.'); }
+  }
+  async function openNotification(item: NotificationItem): Promise<void> {
+    try { await markRead(item.id); }
+    catch { setError('This notification could not be marked read.'); }
+    if (item.location && onOpen) { onOpen(item); setOpen(false); }
   }
 
-  return <div className="notification-center" ref={rootRef}><button type="button" className="notification-trigger" aria-expanded={open} aria-label="Open local notifications" onClick={() => { setOpen((value) => !value); setNewSinceLastCheck(false); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>{unreadCount > 0 && <b>{unreadCount > 9 ? '9+' : unreadCount}</b>}</button>{newSinceLastCheck && !open && <span className="notification-live">New update</span>}{open && <section className="notification-popover" aria-label="Local operational notifications"><header><div><p className="panel-kicker">IN-APP UPDATES · 15S CHECK</p><h2>Coordination notifications</h2></div>{unreadCount > 0 && <button type="button" onClick={() => void markAllRead()}>Mark all read</button>}</header><p className="notification-note">Shared local workflow updates. Not an emergency-alert channel.</p><div className="notification-list">{items.length ? items.map((item) => <button key={item.id} type="button" className={item.read ? 'is-read' : ''} onClick={() => void markRead(item.id)}><i className={`notification-icon notification-icon--${item.kind}`}>{item.kind === 'sos' ? 'SOS' : item.kind === 'request' ? '!' : item.kind === 'assignment' ? '↗' : '▣'}</i><span><strong>{item.title}</strong><small>{item.message}</small><time>{timeLabel(item.timestamp)} · {item.read ? 'Read' : 'Mark read'}</time></span></button>) : <p className="notification-empty">You are all caught up. No local operational reminders need review.</p>}</div></section>}</div>;
+  return <div className="notification-center" ref={rootRef}><button type="button" className="notification-trigger" aria-expanded={open} aria-label="Open local notifications" onClick={() => { setOpen((value) => !value); setNewSinceLastCheck(false); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>{unreadCount > 0 && <b>{unreadCount > 9 ? '9+' : unreadCount}</b>}</button>{newSinceLastCheck && !open && <span className="notification-live">New update</span>}{open && <section className="notification-popover" aria-label="Local operational notifications"><header><div><p className="panel-kicker">IN-APP UPDATES · 15S CHECK</p><h2>Coordination notifications</h2></div>{unreadCount > 0 && <button type="button" onClick={() => void markAllRead()}>Mark all read</button>}</header><p className="notification-note">Shared local workflow updates. Not an emergency-alert channel.</p>{error && <p className="notification-note" role="alert">{error} <button type="button" className="quiet-button" onClick={() => void load()}>Retry</button></p>}<div className="notification-list">{items.length ? items.map((item) => <button key={item.id} type="button" className={item.read ? 'is-read' : ''} onClick={() => void openNotification(item)}><i className={`notification-icon notification-icon--${item.kind}`}>{item.kind === 'sos' ? 'SOS' : item.kind === 'request' ? '!' : item.kind === 'assignment' ? '↗' : '▣'}</i><span><strong>{item.title}</strong><small>{item.message}</small><time>{timeLabel(item.timestamp)} · {item.location ? 'View reported location' : item.read ? 'Read' : 'Mark read'}</time></span></button>) : <p className="notification-empty">You are all caught up. No local operational reminders need review.</p>}</div></section>}</div>;
 }

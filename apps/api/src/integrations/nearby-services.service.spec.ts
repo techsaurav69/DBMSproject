@@ -2,7 +2,7 @@ import { NearbyServicesService } from './nearby-services.service';
 
 describe('NearbyServicesService', () => {
   const originalFetch = global.fetch;
-  afterEach(() => { global.fetch = originalFetch; });
+  afterEach(() => { global.fetch = originalFetch; jest.restoreAllMocks(); });
 
   it('rejects invalid coordinates and unbounded radii before contacting the provider', async () => {
     const fetchMock = jest.fn(); global.fetch = fetchMock;
@@ -30,7 +30,7 @@ describe('NearbyServicesService', () => {
 
   it('reports upstream timeouts as unavailable rather than empty results', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('timeout'));
-    await expect(new NearbyServicesService().search(12, 77, 5000)).rejects.toThrow('could not be loaded');
+    await expect(new NearbyServicesService().search(12, 77, 5000)).rejects.toThrow('temporarily unavailable');
   });
 
   it('uses the second provider when the first rejects the request', async () => {
@@ -63,5 +63,50 @@ describe('NearbyServicesService', () => {
     const smaller = await service.search(0, 0, 2000, 'hospital');
     expect(smaller.items.map((item) => item.name)).toEqual(['Near hospital']);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([1000, 2000, 5000, 10000])('returns real regional directory entries within %i metres during a provider outage', async (radius) => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('provider offline'));
+    const result = await new NearbyServicesService().search(12.97, 77.59, radius, 'hospital');
+    expect(result.mode).toBe('directory');
+    expect(result.source).toBe('Overture Maps Places');
+    expect(result.dataDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(result.items.length).toBeGreaterThan(0);
+    expect(result.items.every((item) => item.category === 'hospital' && item.name.length > 0 && item.distanceMeters <= radius && item.id.startsWith('overture/'))).toBe(true);
+    expect(result.notice).toContain('directory dated');
+  });
+
+  it('does not present missing snapshot categories as an empty successful search', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('provider offline'));
+    await expect(new NearbyServicesService().search(12.97, 77.59, 2000, 'ambulance_station')).rejects.toThrow('temporarily unavailable');
+  });
+
+  it('retains the original successful search timestamp during a later outage', async () => {
+    const fetchMock = jest.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ elements: [{ type: 'node', id: 1, lat: 0, lon: 0, tags: { amenity: 'hospital', name: 'Existing hospital' } }] }) }).mockRejectedValue(new Error('offline'));
+    global.fetch = fetchMock;
+    const service = new NearbyServicesService();
+    const first = await service.search(0, 0, 1000, 'hospital');
+    const later = Date.now() + 6 * 60000;
+    jest.spyOn(Date, 'now').mockReturnValue(later);
+    const result = await service.search(0, 0, 1000, 'hospital');
+    expect(result.mode).toBe('cached');
+    expect(result.fetchedAt).toBe(first.fetchedAt);
+    expect(result.items[0].name).toBe('Existing hospital');
+  });
+
+  it('deduplicates concurrent identical searches and excludes wrong-category records', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ elements: [
+      { type: 'node', id: 1, lat: 0, lon: 0, tags: { amenity: 'hospital', name: 'Hospital' } },
+      { type: 'way', id: 2, center: { lat: 0, lon: 0 }, tags: { amenity: 'hospital', name: 'Hospital' } },
+      { type: 'node', id: 3, lat: 0, lon: 0, tags: { amenity: 'police', name: 'Police' } },
+    ] }) });
+    global.fetch = fetchMock;
+    const service = new NearbyServicesService();
+    const [first, second] = await Promise.all([service.search(0, 0, 1000, 'hospital'), service.search(0, 0, 1000, 'hospital')]);
+    expect(first.items.map((item) => item.name)).toEqual(['Hospital']);
+    expect(second).toEqual(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const query = new URL(fetchMock.mock.calls[0][0]).searchParams.get('data');
+    expect(query).not.toContain('around:');
   });
 });

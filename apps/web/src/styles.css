@@ -88,6 +88,15 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 
 .legend-dot--gdacs { background: #e68b3f; }
 .request-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
+.sos-place-matches { display: grid; gap: .45rem; margin: 0; padding: .7rem; border: 1px solid #c9dfd6; border-radius: .6rem; }
+.sos-place-matches legend { color: #356f5d; font-size: .73rem; font-weight: 700; }
+.sos-place-matches button { padding: .6rem; border: 1px solid #d3e5dc; border-radius: .5rem; text-align: left; color: #285c4b; background: #f1faf6; font: inherit; font-size: .73rem; }
+.sos-place-matches small { display: block; margin-top: .25rem; }
+.sos-map-focus, .sos-success { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 1rem; border: 1px solid #cbe6da; border-radius: .65rem; color: #286a53; background: #eaf8f0; font-size: .75rem; line-height: 1.5; }
+.sos-modal .coordinate-actions { flex-wrap: wrap; }
+[data-theme='dark'] .sos-map-focus, [data-theme='dark'] .sos-success, [data-theme='dark'] .sos-place-matches button { background: #193d2f; color: #b6e5cc; border-color: #3b6651; }
+.nearby-services__notice { margin: .6rem 0; padding: .7rem .85rem; border: 1px solid #cde4db; border-radius: .6rem; background: #eef9f4; color: #356d5a; font-size: .7rem; line-height: 1.6; }
+[data-theme='dark'] .nearby-services__notice { border-color: #355d4d; background: #16372a; color: #b7dfca; }
 .command-telemetry--conditions { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: .4rem; }
 .command-telemetry--conditions .command-telemetry__metric { min-height: 108px; }
 .command-telemetry--conditions .command-telemetry__metric > small { white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }

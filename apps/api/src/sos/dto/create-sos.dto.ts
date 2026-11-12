@@ -13,4 +13,5 @@ export class CreateSosDto {
   @Type(() => Number) @IsLongitude() longitude!: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) peopleCount?: number;
   @IsOptional() @IsString() @Length(2, 1000) addressText?: string;
+  @IsOptional() @IsIn(['manual', 'gps', 'operator']) locationSource?: 'manual' | 'gps' | 'operator';
 }

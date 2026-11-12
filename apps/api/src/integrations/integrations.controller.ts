@@ -28,6 +28,10 @@ export class IntegrationsController {
     return this.places.reverse(latitude?.trim() ? Number(latitude) : NaN, longitude?.trim() ? Number(longitude) : NaN);
   }
 
+  @Get('place-search')
+  @ApiOperation({ summary: 'Search an explicitly submitted place name and let the reporter select the correct location' })
+  placeSearch(@Query('query') query: string) { return this.places.search(query); }
+
   @Get('nearby-services')
   @ApiOperation({ summary: 'Find mapped rescue services within a radius of the map centre' })
   nearbyServices(@Query('latitude') latitude: string, @Query('longitude') longitude: string, @Query('radius') radius: string, @Query('category') category?: string) {
