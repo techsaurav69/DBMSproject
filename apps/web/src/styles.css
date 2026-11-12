@@ -88,6 +88,17 @@ footer { padding-bottom: 1.25rem; color: #6e8984; font: .68rem ui-monospace, mon
 
 .legend-dot--gdacs { background: #e68b3f; }
 .request-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
+.command-telemetry--conditions { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: .4rem; }
+.command-telemetry--conditions .command-telemetry__metric { min-height: 108px; }
+.command-telemetry--conditions .command-telemetry__metric > small { white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
+.command-telemetry--conditions .local-conditions__time, .command-telemetry--conditions .local-conditions__stale { margin-top: .45rem; font-size: .52rem; }
+.command-telemetry--conditions .local-conditions__stale { color: #a36620; }
+.local-conditions__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; color: #6b837a; font-size: .58rem; line-height: 1.5; }
+.local-conditions__footer a { color: inherit; text-underline-offset: 2px; }
+.local-conditions__error { margin: .5rem 0; color: #a35335; font-size: .68rem; line-height: 1.5; }
+[data-theme='dark'] .local-conditions__footer { color: #9bb8ac; }
+[data-theme='dark'] .local-conditions__error, [data-theme='dark'] .command-telemetry--conditions .local-conditions__stale { color: #e3b57f; }
+@media (max-width: 760px) { .command-telemetry--conditions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .delete-request-button { border: 1px solid #ecc6cc; border-radius: .35rem; padding: .3rem .42rem; color: #b03d4e; background: #fff4f5; font-size: .53rem; font-weight: 800; }
 .delete-request-button:hover:not(:disabled) { color: #fff; background: #b03d4e; }
 .delete-request-button:disabled { opacity: .5; cursor: not-allowed; }

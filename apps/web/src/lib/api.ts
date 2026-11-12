@@ -29,6 +29,7 @@ export type OperationsOverview = {
 };
 
 export type AdvisoryWeather = { advisory: true; fetchedAt: string; locationLabel: string; source: 'Open-Meteo'; precipitationMm: number; riskLevel: 'low' | 'medium' | 'high'; riskSummary: string; temperatureC: number; weatherCode: number; windKph: number };
+export type LocalConditions = { fetchedAt: string; timezone: string | null; weather: { temperatureC: number; humidityPercent: number; weatherCode: number | null; isDay: boolean | null; time: string } | null; airQuality: { usAqi: number; time: string } | null };
 export type AdvisoryEarthquakes = { advisory: true; events: Array<{ id: string; latitude: number | null; longitude: number | null; magnitude: number | null; place: string; time: string; url: string }>; fetchedAt: string; source: 'USGS' };
 export type OsirisHazards = { advisory: true; events: Array<{ kind: 'earthquake' | 'fire' | 'weather'; latitude: number; longitude: number; severity: string; sourceUrl: string | null; summary: string; time: string | null }>; fetchedAt: string; source: 'OSIRIS Intelligence'; stats: { fires: number; incidents: number; weather: number } };
 export type CoordinationCandidates = {
@@ -79,6 +80,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  localConditions: (accessToken: string, latitude: number, longitude: number) => request<LocalConditions>(`/integrations/local-conditions?latitude=${latitude}&longitude=${longitude}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   deleteRequest: (accessToken: string, id: string) => request<{ deleted: true }>(`/requests/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }),
   placeName: (accessToken: string, latitude: number, longitude: number) => request<{ name: string; source: string }>(`/integrations/place-name?latitude=${latitude}&longitude=${longitude}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
   nearbyServices: (accessToken: string, latitude: number, longitude: number, radius: number, category = 'all') => request<{ items: NearbyService[]; source: string; fetchedAt: string }>(`/integrations/nearby-services?latitude=${latitude}&longitude=${longitude}&radius=${radius}&category=${encodeURIComponent(category)}`, { headers: { Authorization: `Bearer ${accessToken}` } }),

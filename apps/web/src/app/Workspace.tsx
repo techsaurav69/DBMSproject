@@ -15,6 +15,7 @@ import { WorkflowBoard } from './WorkflowBoard';
 import { SupplyTracker } from './SupplyTracker';
 import { CoordinatorUpdates } from './CoordinatorUpdates';
 import { CommunityAid } from './CommunityAid';
+import { LocalConditionsCards } from './LocalConditionsCards';
 
 type Props = { accessToken: string; onSignOut: () => void; theme: 'light' | 'dark'; onToggleTheme: () => void; user: CurrentUser };
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -29,9 +30,6 @@ function weatherLabel(code: number): string {
   if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'Wet conditions';
   if ([95, 96, 99].includes(code)) return 'Thunderstorm risk';
   return 'Conditions reported';
-}
-function TelemetryMetric({ detail, label, tone, value }: { detail: string; label: string; tone: string; value: string | number }): ReactElement {
-  return <article className={`command-telemetry__metric command-telemetry__metric--${tone}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>;
 }
 
 export function Workspace({ accessToken, onSignOut, theme, onToggleTheme, user }: Props): ReactElement {
@@ -106,14 +104,7 @@ export function Workspace({ accessToken, onSignOut, theme, onToggleTheme, user }
       {actionError && <div className="dashboard-error" role="alert"><strong>Action unavailable.</strong> {actionError}</div>}
       <GlobalDisasterSummary earthquakes={earthquakes} gdacs={gdacsEvents} nasa={nasaEvents} hazards={osirisHazards} failedSources={failedSources} loading={status === 'loading' || status === 'idle'} />
       {overview && <>
-        <section className="command-telemetry" aria-label="Live command telemetry">
-          <TelemetryMetric tone="critical" label="Incident watch" value={overview.summary.openIncidents} detail="Open local reports" />
-          <TelemetryMetric tone="queue" label="Priority queue" value={overview.summary.openRequests} detail="Requests awaiting action" />
-          <TelemetryMetric tone="fleet" label="Fleet ready" value={overview.summary.availableVehicles} detail="Resources available" />
-          <TelemetryMetric tone="shelter" label="Shelter space" value={overview.summary.availableShelterSpaces.toLocaleString()} detail="Places currently free" />
-          <TelemetryMetric tone="weather" label="Weather advisory" value={weather ? `${Math.round(weather.temperatureC)}°` : '—'} detail={weather ? weatherLabel(weather.weatherCode) : 'Feed connecting'} />
-          <TelemetryMetric tone="seismic" label="Seismic watch" value={earthquakes?.events[0]?.magnitude != null ? `M${earthquakes.events[0].magnitude.toFixed(1)}` : '—'} detail={earthquakes?.events[0]?.place ?? 'No signal loaded'} />
-        </section>
+        <LocalConditionsCards accessToken={accessToken} location={{ ...liveLocation, placeName }} />
         <section id="operations" className="command-grid command-grid--map"><article className="panel map-panel"><div className="panel-header"><div><p className="panel-kicker">LIVE OPERATIONS MAP</p><h2>{liveLocation.position ? `${placeName ?? 'Your live location'} · ${liveLocation.position.latitude.toFixed(4)}, ${liveLocation.position.longitude.toFixed(4)}` : liveLocation.error ? 'Your live location is unavailable' : 'Locating you…'}</h2></div><div className="map-legend"><span><i className="legend-dot legend-dot--incident" />Incident</span><span><i className="legend-dot legend-dot--resource" />Available resource</span></div></div><OperationsMap overview={overview} location={{ ...liveLocation, placeName }} /><footer className="map-footer"><span>Data from local PostGIS records</span><span>Straight-line positions only · not vehicle tracking</span></footer></article></section>
         <section id="requests" className="command-grid command-grid--queue"><article className="panel request-panel"><div className="panel-header"><div><p className="panel-kicker">PRIORITY QUEUE</p><h2>Assistance requests</h2></div><button type="button" className="quiet-button" onClick={() => scrollTo('dispatch')}>Open planner</button></div><div className="request-list">{overview.requests.length ? overview.requests.map((request) => <article key={request.id}><span className={`severity-dot severity-dot--${request.severity}`} /><div><p><strong>{titleCase(request.category)} support</strong><span>{request.label ?? 'Location pending'}</span></p><small>{request.description}</small></div><aside><em className={`status-badge status-badge--${request.status}`}>{titleCase(request.status)}</em>{request.peopleCount && <small>{request.peopleCount} people</small>}<div className="request-row-actions">{request.status === 'triaged' && <button className="advance-button" type="button" onClick={() => scrollTo('dispatch')}>Plan dispatch</button>}{['open', 'assigned', 'in_progress'].includes(request.status) && <button className="advance-button" type="button" disabled={updatingRequestId === request.id} onClick={() => void advanceRequest(request.id, request.status)}>{updatingRequestId === request.id ? 'Saving…' : `Mark ${request.status === 'open' ? 'triaged' : request.status === 'assigned' ? 'in progress' : 'fulfilled'}`}</button>}{user.roles.includes('coordinator') && <button type="button" className="delete-request-button" disabled={deletingRequestId !== null || updatingRequestId === request.id || !['open', 'triaged'].includes(request.status)} title={['open', 'triaged'].includes(request.status) ? 'Delete this assistance request' : 'Assigned requests cannot be deleted'} onClick={() => void deleteRequest(request)}>{deletingRequestId === request.id ? 'Deleting…' : 'Delete'}</button>}</div></aside></article>) : <p className="empty-copy">No open assistance requests in the local database.</p>}</div></article><article className="panel incident-panel"><div className="panel-header"><div><p className="panel-kicker">INCIDENT WATCH</p><h2>Open reports</h2></div><span className="count-bubble">{overview.incidents.length}</span></div><div className="incident-list">{overview.incidents.map((incident) => <div key={incident.id}><span className={`incident-symbol incident-symbol--${incident.severity}`}>!</span><p><strong>{titleCase(incident.emergencyType)} · {titleCase(incident.severity)}</strong><small>{incident.label ?? 'Location pending'} · {formatTime(incident.reportedAt)}</small></p><em>{titleCase(incident.status)}</em></div>)}</div></article></section>
         <CoordinatorUpdates accessToken={accessToken} canPost={canPostCoordinatorUpdates} scope="request_queue" title="Request queue updates" />
